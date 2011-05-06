@@ -1,0 +1,108 @@
+#!/bin/sh -e
+# $Cambridge$
+
+ST=" 	"
+W="[^ ]*"
+IN="^$W $W IN"
+
+D="$(mktemp -d nsdiff.XXXXXXXX)"
+
+cleanup () {
+  rm -rf "$D"
+}
+
+trap cleanup EXIT INT
+
+say () {
+  echo "nsdiff: $*" 1>&2
+}
+
+die () {
+  say "$*"
+  exit 1
+}
+
+getfile () {
+  local file
+  file="$D/$(basename "$1")"
+  cp "$1" "$file"
+  echo "$file"
+}
+
+zonename () {
+  sed "s/[$ST][$ST]*/ /g
+        /$IN SOA /!d
+       s/[.] .*//
+       q" <"$1"
+}
+
+getzone () {
+  local zone
+  zone="$(zonename "$1")"
+  case "$zone" in
+  "") die "could not find SOA in file $1"
+  esac
+  say "found zone $zone in file $1"
+  echo "$zone"
+}
+
+case $# in
+1)
+  zone="$(getzone "$1")"
+  old="$D/$zone.axfr"
+  new="$(getfile "$1")"
+  # download old zone
+  soa="$(dig +short soa "$zone")"
+  master="${soa%% *}"
+  dig axfr "$zone" @"$master" >"$old"
+  ztwo="$(zonename "$old")"
+  if [ "x$zone" != "x$ztwo" ]
+  then die "could not axfr zone from master"
+  fi
+  ;;
+2)
+  zone="$(getzone "$1")"
+  ztwo="$(getzone "$2")"
+  if [ "x$zone" != "x$ztwo" ]
+  then die "zones differ"
+  fi
+  old="$(getfile "$1")"
+  new="$(getfile "$2")"
+  ;;
+*)
+  echo "usage: nsdiff [oldfile] newfile" 1>&2
+  exit 1
+  ;;
+esac
+
+for file in "$old" "$new"
+do
+  named-compilezone -i local -k warn -n warn -o "$file.canon" "$zone" "$file" 1>&2
+  sed "s/[$ST][$ST]*/ /g
+        /$IN NSEC /d
+        /$IN NSEC3 /d
+        /$IN NSEC3PARAM /d
+        /$IN RRSIG /d
+        /$IN DNSKEY /d
+        /$IN TYPE65534 /d" <"$file.canon" >"$file.clean"
+done
+
+serial=$(sed '/$IN SOA [^ ]* [^ ]* \([0-9]*\) .*/!d;s//\1/' "$old.clean")
+serial=$((serial+1))
+
+echo zone "$zone"
+diff -U0 "$old.clean" "$new.clean" |
+sed "/^---/d
+     /^+++/d
+     /^@@/d
+    s/^+\($W $W IN SOA $W $W\) $W /+\1 $serial /
+    s/^+/update add /
+    s/^-\($W\) $W /prereq yxrrset \1 /
+     /^prereq yxrrset /p
+  //s//update delete /"
+echo show
+echo send
+echo answer
+
+
+exit 0
