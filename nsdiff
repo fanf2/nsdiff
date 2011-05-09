@@ -1,108 +1,114 @@
-#!/bin/sh -e
+#!/usr/bin/perl
+#
 # $Cambridge$
 
-ST=" 	"
-W="[^ ]*"
-IN="^$W $W IN"
+use warnings;
+use strict;
 
-D="$(mktemp -d nsdiff.XXXXXXXX)"
+my $label = qr{[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?};
+my $labels = qr{$label(?:[.]$label)*[.]?};
+my $domain = qr{^$labels$};
+my $soarr = qr{^($labels) (\d+) (IN SOA $labels $labels) (\d+) (\d+ \d+ \d+ \d+\n)};
 
-cleanup () {
-  rm -rf "$D"
+my $compilezone = 'named-compilezone -i local -k warn -n warn -o -';
+
+sub wail { warn "nsdiff: @_\n"; }
+sub fail { die  "nsdiff: @_\n"; }
+
+# normalize whitespace and remove DNSSEC records
+sub cleanzone {
+    my @zone = grep {
+	s{\s+}{ }g;
+	s{\s*$}{\n};
+	not m{^$labels \d+ IN (NSEC|NSEC3|NSEC3PARAM|RRSIG|DNSKEY|TYPE65534) };
+    } @_;
+    my $soa = shift @zone;
+    fail "missing SOA record" unless defined $soa and $soa =~ $soarr;
+    return $soa, sort @zone;
 }
 
-trap cleanup EXIT INT
-
-say () {
-  echo "nsdiff: $*" 1>&2
+sub axfrzone {
+    my $zone = shift;
+    my @soa = split ' ', qx{dig +short soa $zone};
+    my $master = $soa[0];
+    fail "could not get SOA record for $zone"
+	unless defined $master and $master =~ $domain;
+    wail "processing $zone from AXFR";
+    return cleanzone qx{dig axfr $zone \@$master | $compilezone $zone /dev/stdin};
 }
 
-die () {
-  say "$*"
-  exit 1
+sub loadzone {
+    my ($zone,$file) = @_;
+    wail "processing $zone from $file";
+    return cleanzone qx{$compilezone -j $zone '$file'};
 }
 
-getfile () {
-  local file
-  file="$D/$(basename "$1")"
-  cp "$1" "$file"
-  echo "$file"
+sub usage {
+    print STDERR <<EOF;
+usage: nsdiff <zone> [old] <new>
+Generate an `nsupdate` script that changes a zone from the "old" version
+into the "new" version. DNSSEC-related differences are ignored.
+The input files can be `named` working zone files with journals. If the
+"old" file is not specified, `nsdiff` will AXFR the zone from the master
+server identified in the SOA MNAME field.
+EOF
+    exit 1;
+}
+usage if @ARGV != 2 && @ARGV != 3;
+
+my $zone = shift;
+fail "not a domain name: $zone" unless $zone =~ $domain;
+
+my ($old,@old) = (@ARGV == 1)
+                  ? axfrzone $zone
+                  : loadzone $zone, shift;
+my ($new,@new) = loadzone $zone, shift;
+
+my ($soa,$newsoa) = ($old,$new);
+
+sub doit { print "send\nanswer\n"; }
+
+my $size = 0;
+sub emit {
+    my $cmd = "@_";
+    $size += length $cmd;
+    if ($size > 50000) {
+	$size = 0;
+	doit;
+	&bumpsoa;
+    }
+    print $cmd;
 }
 
-zonename () {
-  sed "s/[$ST][$ST]*/ /g
-        /$IN SOA /!d
-       s/[.] .*//
-       q" <"$1"
+sub del {
+    $old =~ m{^($labels) \d+ (.*)$}s;
+    emit "update delete", $1, $2;
+    $old = shift @old;
+}
+sub add {
+    emit "update add", $new;
+    $new = shift @new;
+}
+sub shift2 {
+    $old = shift @old;
+    $new = shift @new;
 }
 
-getzone () {
-  local zone
-  zone="$(zonename "$1")"
-  case "$zone" in
-  "") die "could not find SOA in file $1"
-  esac
-  say "found zone $zone in file $1"
-  echo "$zone"
+sub bumpsoa {
+    $soa =~ $soarr;
+    my $serial = $4 + 1;
+    emit "prereq yxrrset", $1, $3, $4, $5;
+    $newsoa =~ $soarr;
+    emit "update add", $soa = "$1 $2 $3 $serial $5";
 }
 
-case $# in
-1)
-  zone="$(getzone "$1")"
-  old="$D/$zone.axfr"
-  new="$(getfile "$1")"
-  # download old zone
-  soa="$(dig +short soa "$zone")"
-  master="${soa%% *}"
-  dig axfr "$zone" @"$master" >"$old"
-  ztwo="$(zonename "$old")"
-  if [ "x$zone" != "x$ztwo" ]
-  then die "could not axfr zone from master"
-  fi
-  ;;
-2)
-  zone="$(getzone "$1")"
-  ztwo="$(getzone "$2")"
-  if [ "x$zone" != "x$ztwo" ]
-  then die "zones differ"
-  fi
-  old="$(getfile "$1")"
-  new="$(getfile "$2")"
-  ;;
-*)
-  echo "usage: nsdiff [oldfile] newfile" 1>&2
-  exit 1
-  ;;
-esac
+bumpsoa;
+shift2;
+my @act = (\&shift2, \&add, \&del);
+$act[$old cmp $new]()
+    while defined $old and defined $new;
+del while defined $old;
+add while defined $new;
+doit;
 
-for file in "$old" "$new"
-do
-  named-compilezone -i local -k warn -n warn -o "$file.canon" "$zone" "$file" 1>&2
-  sed "s/[$ST][$ST]*/ /g
-        /$IN NSEC /d
-        /$IN NSEC3 /d
-        /$IN NSEC3PARAM /d
-        /$IN RRSIG /d
-        /$IN DNSKEY /d
-        /$IN TYPE65534 /d" <"$file.canon" >"$file.clean"
-done
-
-serial=$(sed '/$IN SOA [^ ]* [^ ]* \([0-9]*\) .*/!d;s//\1/' "$old.clean")
-serial=$((serial+1))
-
-echo zone "$zone"
-diff -U0 "$old.clean" "$new.clean" |
-sed "/^---/d
-     /^+++/d
-     /^@@/d
-    s/^+\($W $W IN SOA $W $W\) $W /+\1 $serial /
-    s/^+/update add /
-    s/^-\($W\) $W /prereq yxrrset \1 /
-     /^prereq yxrrset /p
-  //s//update delete /"
-echo show
-echo send
-echo answer
-
-
-exit 0
+exit;
