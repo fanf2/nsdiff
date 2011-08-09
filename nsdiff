@@ -9,6 +9,7 @@ my $label = qr{[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?};
 my $labels = qr{$label(?:[.]$label)*[.]?};
 my $domain = qr{^$labels$};
 my $soarr = qr{^($labels) (\d+) (IN SOA $labels $labels) (\d+) (\d+ \d+ \d+ \d+\n)};
+my $cmpre = qr{^($labels) \d+ IN ([A-Z]+) .*\n$};
 
 my $compilezone = 'named-compilezone -i local -k warn -n warn -o -';
 
@@ -102,10 +103,18 @@ sub bumpsoa {
     emit "update add", $soa = "$1 $2 $3 $serial $5";
 }
 
+sub rrcmp {
+    my ($newname,$newtype) = ($new =~ $cmpre);
+    my ($oldname,$oldtype) = ($old =~ $cmpre);
+    # If name and type are equal, always delete old RRs before adding
+    # new ones. This ensures TTL adjustments are handled correctly.
+    return ($newname cmp $oldname or $newtype cmp $oldtype or $new ne $old);
+}
+
 bumpsoa;
 shift2;
-my @act = (\&shift2, \&add, \&del);
-$act[$old cmp $new]()
+my @act = (\&shift2, \&del, \&add);
+$act[rrcmp]()
     while defined $old and defined $new;
 del while defined $old;
 add while defined $new;
