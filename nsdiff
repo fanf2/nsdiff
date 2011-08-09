@@ -48,18 +48,18 @@ sub loadzone {
 
 sub usage {
     print STDERR <<EOF;
-usage: nsdiff [-k keyfile] <zone> [old] <new>
+usage: nsdiff [-b address] [-k keyfile] [-y [hmac:]name:key] <zone> [old] <new>
 Generate an `nsupdate` script that changes a zone from the "old" version
 into the "new" version. DNSSEC-related differences are ignored.
 The input files can be `named` working zone files with journals. If the
 "old" file is not specified, `nsdiff` will AXFR the zone from the master
-server identified in the SOA MNAME field. The "-k" option is passed to
-`dig` to specify a TSIG key file to use when transferring the zone.
+server identified in the SOA MNAME field. Any "-b", "-k", "-y" options
+are passed to `dig` when transferring the zone.
 EOF
     exit 1;
 }
-if ($ARGV[0] eq '-k') {
-    $axfropts = join " ", splice @ARGV, 0, 2;
+while ($ARGV[0] =~ m{^-[bky]$}) {
+    $axfropts = join " ", $axfropts, splice @ARGV, 0, 2;
 }
 usage if $axfropts and @ARGV != 2;
 usage if @ARGV != 2 && @ARGV != 3;
