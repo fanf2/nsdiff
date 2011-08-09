@@ -48,17 +48,18 @@ sub loadzone {
 
 sub usage {
     print STDERR <<EOF;
-usage: nsdiff [-b address] [-k keyfile] [-y [hmac:]name:key] <zone> [old] <new>
-Generate an `nsupdate` script that changes a zone from the "old" version
-into the "new" version. DNSSEC-related differences are ignored.
-The input files can be `named` working zone files with journals. If the
-"old" file is not specified, `nsdiff` will AXFR the zone from the master
-server identified in the SOA MNAME field. Any "-b", "-k", "-y" options
-are passed to `dig` when transferring the zone.
+usage: nsdiff [options] <zone> [old] <new>
+  Generate an `nsupdate` script that changes a zone from the
+  "old" version into the "new" version, ignoring DNSSEC records.
+  If the "old" file is omitted, `nsdiff` will AXFR the zone.
+options:
+  -b address          bind AXFR client socket
+  -k keyfile          AXFR TSIG key
+  -y [hmac:]name:key  AXFR TSIG key
 EOF
     exit 1;
 }
-while ($ARGV[0] =~ m{^-[bky]$}) {
+while (@ARGV and $ARGV[0] =~ m{^-[bky]$}) {
     $axfropts = join " ", $axfropts, splice @ARGV, 0, 2;
 }
 usage if $axfropts and @ARGV != 2;
@@ -128,3 +129,159 @@ add while defined $new;
 doit;
 
 exit;
+
+__END__
+
+=head1 NAME
+
+nsdiff - create "nsupdate" script from DNS zone file diffrences
+
+=head1 SYNOPSIS
+
+nsdiff [B<-b> I<address>] [B<-k> I<keyfile>] [B<-y> [I<hmac>:]I<name>:I<key>]
+       <I<zone>> [I<old>] <I<new>>
+
+=head1 DESCRIPTION
+
+The C<nsdiff> program examines the F<old> and F<new> versions of a DNS
+zone, and outputs the differences as a script for use by BIND's
+C<nsupdate> program. It ignores DNSSEC-related differences, assuming
+that the name server has sole control over zone keys and signatures.
+
+The input files are typically in standard DNS master file format. They
+are passed through BIND's C<named-compilezone> program to convert them
+to canonical form, so they may also be in BIND's "raw" format and may
+have F<.jnl> update journals.
+
+If the F<old> file is not specified, C<nsdiff> will use C<dig> to
+transfer the zone from its master server as identified in the zone's
+SOA MNAME field.
+
+=head1 OPTIONS
+
+The following options are passed to C<dig> to modify its AXFR request:
+
+=over
+
+=item B<-b> I<address>
+
+AXFR query source address
+
+=item B<-k> I<keyfile>
+
+TSIG key file for AXFR query
+
+=item B<-y> [I<hmac>:]I<name>:I<key>
+
+Literal TSIG key for AXFR query
+
+=back
+
+=head1 DIAGNOSTICS
+
+=over
+
+=item C<could not get SOA record for I<zone>>
+
+Error emitted when C<dig> fails to retreive the zone's SOA.
+
+=item C<missing SOA record>
+
+Error emitted when the output of C<named-compilezone> is incomplete,
+usually because the input file is erroneous.
+
+=item C<not a domain name: I<zone>>
+
+Error emitted if the first argument's syntax is wrong.
+
+=item C<usage: ...>
+
+Error emitted if the command line arguments are wrong.
+
+=item C<loading zone I<zone> from AXFR>
+
+=item C<loading zone I<zone> from file I<file>>
+
+Normal progress messages emitted before C<nsdiff> invokes
+C<named-compilezone>, to explain the latter's diagnostics.
+
+=back
+
+=head1 EXAMPLES
+
+It is easiest to deploy DNSSEC if you allow C<named> to manage zone keys
+and signatures automatically, and feed in changes to zones using DNS
+update requests. However this is very different from the traditional way
+of manually maintaining zones in standard master file format. The
+C<nsdiff> program bridges the gap between the two operational styles.
+
+To support this workflow you need BIND-9.7 or newer. You will continue
+maintaining your zone master file C<$sourcefile> as before, but it is no
+longer the same as the C<$workingfile> used by C<named>. After you make
+a change, instead of using C<rndc reload $zone>, run C<nsdiff $zone
+$sourcefile | nsupdate -l>.
+
+Configure your zone as follows, to support DNSSEC and local dynamic updates:
+
+  zone $zone {
+    type master;
+    file "$workingfile";
+    auto-dnssec maintain;
+    update-policy local;
+  };
+
+To create DNSSEC keys for your zone, change to named's working directory
+and run these commands:
+
+  dnssec-keygen -f KSK $zone
+  dnssec-keygen $zone
+
+=head1 CAVEATS
+
+Note that C<nsdiff> does not maintain the transactional semantics of
+native DNS update requests when the diff is large - it applies the changes
+in multiple update requests. This gives you a small risk of clients not
+seeing a change applied atomically when that matters (e.g. altering an MX
+and creating the new target in the same transaction). You may be able to
+avoid this if you have good control over what gets changed when.
+
+Also, if something else is making changes to the zone at the time you run
+C<nsdiff> and C<nsupdate>, then some or all of the changes may be rejected
+by the server. This may happen even in simple setups if C<named> happens
+to be re-signing the zone at the time you make an update. The SOA serial
+number prerequisite checks are supposed to catch this problem, but they
+are a bit weak when the changes are split into multiple transactions. But
+if this happens it should be safe to just re-run C<nsdiff | nsupdate>
+(though the warning about delicate dependencies applies even more
+strongly).
+
+The current operational trade-offs in C<nsdiff> are not necessarily the
+right ones. For instance you might prefer to abort rather than split the
+changes into multiple transactions, and/or you might need to use another
+RR for consistency checks instead of or as well as the SOA serial number.
+Feedback is welcome.
+
+=head1 AUTHOR
+
+=over
+
+=item Written by Tony Finch <fanf2@cam.ac.uk> <dot@dotat.at>
+
+=item at the University of Cambridge Computing Service.
+
+=item You may do anything with it, at your own risk.
+
+=item L<http://creativecommons.org/publicdomain/zero/1.0/>
+
+=back
+
+=head1 ACKNOWLEDGMENTS
+
+Thanks to Terry Burton at the University of Leicester for providing
+useful feedback.
+
+=head1 SEE ALSO
+
+dig(1), nsupdate(1), named(8), named-compilezone(8)
+
+=cut
