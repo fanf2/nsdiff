@@ -13,7 +13,7 @@ my $cmpre = qr{^($labels) \d+ IN ([A-Z]+) .*\n$};
 
 my $compilezone = 'named-compilezone -i local -k warn -n warn -o -';
 
-my $axfropts = "";
+my $digopts = "";
 
 sub wail { warn "nsdiff: @_\n"; }
 sub fail { die  "nsdiff: @_\n"; }
@@ -32,12 +32,12 @@ sub cleanzone {
 
 sub axfrzone {
     my $zone = shift;
-    my @soa = split ' ', qx{dig $axfropts +short soa $zone};
+    my @soa = split ' ', qx{dig $digopts +short soa $zone};
     my $master = $soa[0];
     fail "could not get SOA record for $zone"
 	unless defined $master and $master =~ $domain;
     wail "loading zone $zone from AXFR";
-    return cleanzone qx{dig axfr $zone \@$master | $compilezone $zone /dev/stdin};
+    return cleanzone qx{dig $digopts axfr $zone \@$master | $compilezone $zone /dev/stdin};
 }
 
 sub loadzone {
@@ -60,9 +60,9 @@ EOF
     exit 1;
 }
 while (@ARGV and $ARGV[0] =~ m{^-[bky]$}) {
-    $axfropts = join " ", $axfropts, splice @ARGV, 0, 2;
+    $digopts = join " ", $digopts, splice @ARGV, 0, 2;
 }
-usage if $axfropts and @ARGV != 2;
+usage if $digopts and @ARGV != 2;
 usage if @ARGV != 2 && @ARGV != 3;
 
 my $zone = shift;
@@ -159,7 +159,8 @@ SOA MNAME field.
 
 =head1 OPTIONS
 
-The following options are passed to C<dig> to modify its AXFR request:
+The following options are passed to C<dig> to modify its SOA and AXFR
+queries:
 
 =over
 
