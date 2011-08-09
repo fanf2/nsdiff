@@ -34,13 +34,13 @@ sub axfrzone {
     my $master = $soa[0];
     fail "could not get SOA record for $zone"
 	unless defined $master and $master =~ $domain;
-    wail "processing $zone from AXFR";
+    wail "loading zone $zone from AXFR";
     return cleanzone qx{dig axfr $zone \@$master | $compilezone $zone /dev/stdin};
 }
 
 sub loadzone {
     my ($zone,$file) = @_;
-    wail "processing $zone from $file";
+    wail "loading zone $zone from file $file";
     return cleanzone qx{$compilezone -j $zone '$file'};
 }
 
