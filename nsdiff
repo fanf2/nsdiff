@@ -8,7 +8,7 @@ use strict;
 my $label = qr{[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?};
 my $labels = qr{$label(?:[.]$label)*[.]?};
 my $domain = qr{^$labels$};
-my $soarr = qr{^($labels) (\d+) (IN SOA $labels $labels) (\d+) (\d+ \d+ \d+ \d+\n)};
+my $soare = qr{^($labels) (\d+) (IN SOA $labels $labels) (\d+) (\d+ \d+ \d+ \d+\n)$};
 my $cmpre = qr{^($labels) \d+ IN ([A-Z]+) .*\n$};
 
 my $compilezone = 'named-compilezone -i local -k warn -n warn -o -';
@@ -24,7 +24,7 @@ sub cleanzone {
 	not m{^$labels \d+ IN (NSEC|NSEC3|NSEC3PARAM|RRSIG|DNSKEY|TYPE65534) };
     } @_;
     my $soa = shift @zone;
-    fail "missing SOA record" unless defined $soa and $soa =~ $soarr;
+    fail "missing SOA record" unless defined $soa and $soa =~ $soare;
     return $soa, sort @zone;
 }
 
@@ -96,10 +96,10 @@ sub shift2 {
 }
 
 sub bumpsoa {
-    $soa =~ $soarr;
+    $soa =~ $soare;
     my $serial = $4 + 1;
     emit "prereq yxrrset", $1, $3, $4, $5;
-    $newsoa =~ $soarr;
+    $newsoa =~ $soare;
     emit "update add", $soa = "$1 $2 $3 $serial $5";
 }
 
