@@ -13,6 +13,8 @@ my $cmpre = qr{^($labels) \d+ IN ([A-Z]+) .*\n$};
 
 my $compilezone = 'named-compilezone -i local -k warn -n warn -o -';
 
+my $axfropts = "";
+
 sub wail { warn "nsdiff: @_\n"; }
 sub fail { die  "nsdiff: @_\n"; }
 
@@ -30,7 +32,7 @@ sub cleanzone {
 
 sub axfrzone {
     my $zone = shift;
-    my @soa = split ' ', qx{dig +short soa $zone};
+    my @soa = split ' ', qx{dig $axfropts +short soa $zone};
     my $master = $soa[0];
     fail "could not get SOA record for $zone"
 	unless defined $master and $master =~ $domain;
@@ -46,15 +48,20 @@ sub loadzone {
 
 sub usage {
     print STDERR <<EOF;
-usage: nsdiff <zone> [old] <new>
+usage: nsdiff [-k keyfile] <zone> [old] <new>
 Generate an `nsupdate` script that changes a zone from the "old" version
 into the "new" version. DNSSEC-related differences are ignored.
 The input files can be `named` working zone files with journals. If the
 "old" file is not specified, `nsdiff` will AXFR the zone from the master
-server identified in the SOA MNAME field.
+server identified in the SOA MNAME field. The "-k" option is passed to
+`dig` to specify a TSIG key file to use when transferring the zone.
 EOF
     exit 1;
 }
+if ($ARGV[0] eq '-k') {
+    $axfropts = join " ", splice @ARGV, 0, 2;
+}
+usage if $axfropts and @ARGV != 2;
 usage if @ARGV != 2 && @ARGV != 3;
 
 my $zone = shift;
