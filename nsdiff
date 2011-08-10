@@ -53,9 +53,9 @@ usage: nsdiff [options] <zone> [old] <new>
   "old" version into the "new" version, ignoring DNSSEC records.
   If the "old" file is omitted, `nsdiff` will AXFR the zone.
 options:
-  -b address          bind AXFR client socket
-  -k keyfile          AXFR TSIG key
-  -y [hmac:]name:key  AXFR TSIG key
+  -b address          bind dig query client address
+  -k keyfile          dig query TSIG key
+  -y [hmac:]name:key  dig query TSIG key
 EOF
     exit 1;
 }
