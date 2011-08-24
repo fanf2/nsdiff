@@ -89,6 +89,18 @@ sub emit {
     print $cmd;
 }
 
+sub bumpsoa {
+    $soa =~ $soare;
+    my $serial = $4 + 1;
+    emit "prereq yxrrset", $1, $3, $4, $5;
+    $newsoa =~ $soare;
+    emit "update add", $soa = "$1 $2 $3 $serial $5";
+}
+
+sub skip {
+    $old = shift @old;
+    $new = shift @new;
+}
 sub del {
     $old =~ m{^($labels) \d+ (.*)$}s;
     emit "update delete", $1, $2;
@@ -97,18 +109,6 @@ sub del {
 sub add {
     emit "update add", $new;
     $new = shift @new;
-}
-sub shift2 {
-    $old = shift @old;
-    $new = shift @new;
-}
-
-sub bumpsoa {
-    $soa =~ $soare;
-    my $serial = $4 + 1;
-    emit "prereq yxrrset", $1, $3, $4, $5;
-    $newsoa =~ $soare;
-    emit "update add", $soa = "$1 $2 $3 $serial $5";
 }
 
 sub rrcmp {
@@ -120,8 +120,8 @@ sub rrcmp {
 }
 
 bumpsoa;
-shift2;
-my @act = (\&shift2, \&del, \&add);
+skip; # soa records
+my @act = (\&skip, \&del, \&add);
 $act[rrcmp]()
     while defined $old and defined $new;
 del while defined $old;
@@ -270,7 +270,7 @@ Feedback is welcome.
 
 =item at the University of Cambridge Computing Service.
 
-=item You may do anything with it, at your own risk.
+=item You may do anything with this, at your own risk.
 
 =item L<http://creativecommons.org/publicdomain/zero/1.0/>
 
