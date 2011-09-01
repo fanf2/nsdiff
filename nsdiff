@@ -7,9 +7,10 @@ use strict;
 
 my $label = qr{[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?};
 my $labels = qr{$label(?:[.]$label)*[.]?};
-my $domain = qr{^$labels$};
+my $wlabels = qr{(?:[*][.])?$labels};
+my $zonere = qr{^$labels$};
 my $soare = qr{^($labels) (\d+) (IN SOA $labels $labels) (\d+) (\d+ \d+ \d+ \d+\n)$};
-my $cmpre = qr{^($labels) \d+ IN ([A-Z]+) .*\n$};
+my $cmpre = qr{^($wlabels) \d+ IN ([A-Z][A-Z0-9]*) .*\n$};
 
 my $compilezone = 'named-compilezone -i local -k warn -n warn -o -';
 
@@ -23,7 +24,7 @@ sub cleanzone {
     my @zone = grep {
 	s{\s+}{ }g;
 	s{\s*$}{\n};
-	not m{^$labels \d+ IN (NSEC|NSEC3|NSEC3PARAM|RRSIG|DNSKEY|TYPE65534) };
+	not m{^$wlabels \d+ IN (NSEC|NSEC3|NSEC3PARAM|RRSIG|DNSKEY|TYPE65534) };
     } @_;
     my $soa = shift @zone;
     fail "missing SOA record" unless defined $soa and $soa =~ $soare;
@@ -35,7 +36,7 @@ sub axfrzone {
     my @soa = split ' ', qx{dig $digopts +short soa $zone};
     my $master = $soa[0];
     fail "could not get SOA record for $zone"
-	unless defined $master and $master =~ $domain;
+	unless defined $master and $master =~ $zonere;
     wail "loading zone $zone from AXFR";
     return cleanzone qx{dig $digopts axfr $zone \@$master | $compilezone $zone /dev/stdin};
 }
@@ -66,7 +67,7 @@ usage if $digopts and @ARGV != 2;
 usage if @ARGV != 2 && @ARGV != 3;
 
 my $zone = shift;
-fail "not a domain name: $zone" unless $zone =~ $domain;
+fail "not a domain name: $zone" unless $zone =~ $zonere;
 
 my ($old,@old) = (@ARGV == 1)
                   ? axfrzone $zone
@@ -102,7 +103,7 @@ sub skip {
     $new = shift @new;
 }
 sub del {
-    $old =~ m{^($labels) \d+ (.*)$}s;
+    $old =~ m{^($wlabels) \d+ (.*)$}s;
     emit "update delete", $1, $2;
     $old = shift @old;
 }
@@ -270,7 +271,7 @@ Feedback is welcome.
 
 =item at the University of Cambridge Computing Service.
 
-=item You may do anything with this, at your own risk.
+=item You may do anything with this. It has no warranty.
 
 =item L<http://creativecommons.org/publicdomain/zero/1.0/>
 
