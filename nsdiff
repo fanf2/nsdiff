@@ -6,8 +6,9 @@ use warnings;
 use strict;
 
 my $label = qr{[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?};
+my $ulabels = qr{(?:_$label[.])+};
 my $labels = qr{$label(?:[.]$label)*[.]?};
-my $wlabels = qr{(?:[*][.])?$labels};
+my $wlabels = qr{(?:[*][.]|$ulabels)?$labels};
 my $zonere = qr{^$labels$};
 my $soare = qr{^($labels) (\d+) (IN SOA $labels $labels) (\d+) (\d+ \d+ \d+ \d+\n)$};
 my $cmpre = qr{^($wlabels) \d+ IN ([A-Z][A-Z0-9]*) .*\n$};
