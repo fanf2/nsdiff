@@ -5,8 +5,52 @@
 use warnings;
 use strict;
 
+use Getopt::Std;
+
 sub fail { die  "nsdiff: @_\n"; }
 sub wail { warn "nsdiff: @_\n"; }
+
+sub usage {
+    print STDERR <<EOF;
+usage: nsdiff [options] <zone> [old] <new>
+  Generate an `nsupdate` script that changes a zone from the
+  "old" version into the "new" version, ignoring DNSSEC records.
+  If the "old" file is omitted, `nsdiff` will AXFR the zone.
+options:
+  -S date|serial|unix  SOA serial update mode
+  -v [q][r]            verbose query and/or reply
+  -b address           dig query source address
+  -k keyfile           dig query TSIG key
+  -y [hmac:]name:key   dig query TSIG key
+EOF
+    exit 1;
+}
+my %opt;
+usage unless getopts 'qv:S:b:k:y:', \%opt;
+usage unless @ARGV == 2 || @ARGV == 3;
+
+my @digopts;
+for my $o (qw{ b k y }) {
+    push @digopts, "-$o $opt{$o}" if exists $opt{$o};
+}
+wail "ignoring dig options when loading old zone from file"
+    if @digopts && @ARGV != 2;
+
+usage if $opt{v} && $opt{v} !~ m{^[qr]*$};
+my $verbosity = $opt{v} || 'r';
+
+my %soamin =
+(   serial => sub { return 0; },
+    unix => sub { return time; },
+    date => sub {
+	my ($sec,$min,$hour,$mday,$mon,$year) = gmtime;
+	return sprintf "%04d%02d%02d%02d", 1900+$year,1+$mon,$mday,0;
+    }
+);
+my $soamode = $opt{S} || 'serial';
+usage unless exists $soamin{$soamode};
+
+# These variables are unlikely to need changing.
 
 my $label = qr{[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?};
 my $ulabels = qr{(?:_$label[.])+};
@@ -17,18 +61,6 @@ my $soare = qr{^($labels) (\d+) (IN SOA $labels $labels) (\d+) (\d+ \d+ \d+ \d+\
 my $cmpre = qr{^($wlabels) };
 
 my $compilezone = 'named-compilezone -i local -k warn -n warn -o -';
-
-my $digopts = "";
-my $soamode = 'serial';
-
-my %soamin =
-(   serial => sub { return 0; },
-    unix => sub { return time; },
-    date => sub {
-	my ($sec,$min,$hour,$mday,$mon,$year) = gmtime;
-	return sprintf "%04d%02d%02d%02d", 1900+$year,1+$mon,$mday,0;
-    }
-);
 
 # normalize whitespace and remove DNSSEC records
 sub cleanzone {
@@ -44,12 +76,12 @@ sub cleanzone {
 
 sub axfrzone {
     my $zone = shift;
-    my @soa = split ' ', qx{dig $digopts +short soa $zone};
+    my @soa = split ' ', qx{dig @digopts +short soa $zone};
     my $master = $soa[0];
     fail "could not get SOA record for $zone"
 	unless defined $master and $master =~ $zonere;
     wail "loading zone $zone from AXFR";
-    return cleanzone qx{dig $digopts axfr $zone \@$master | $compilezone $zone /dev/stdin};
+    return cleanzone qx{dig @digopts axfr $zone \@$master | $compilezone $zone /dev/stdin};
 }
 
 sub loadzone {
@@ -57,33 +89,6 @@ sub loadzone {
     wail "loading zone $zone from file $file";
     return cleanzone qx{$compilezone -j $zone '$file'};
 }
-
-sub usage {
-    print STDERR <<EOF;
-usage: nsdiff [options] <zone> [old] <new>
-  Generate an `nsupdate` script that changes a zone from the
-  "old" version into the "new" version, ignoring DNSSEC records.
-  If the "old" file is omitted, `nsdiff` will AXFR the zone.
-options:
-  -S date|serial|unix  SOA serial update mode
-  -b address           bind dig query client address
-  -k keyfile           dig query TSIG key
-  -y [hmac:]name:key   dig query TSIG key
-EOF
-    exit 1;
-}
-while (@ARGV and $ARGV[0] =~ m{^-[Sbky]$}) {
-    if ($ARGV[0] eq "-S") {
-	usage unless exists $soamin{$ARGV[1]};
-	$soamode = $ARGV[1];
-	splice @ARGV, 0, 2;
-    } else {
-	$digopts = join " ", $digopts, splice @ARGV, 0, 2;
-    }
-}
-usage if $digopts and @ARGV != 2;
-usage if @ARGV != 2 && @ARGV != 3;
-usage if $ARGV[0] =~ m{^-};
 
 my $zone = shift;
 fail "not a domain name: $zone" unless $zone =~ $zonere;
@@ -95,18 +100,25 @@ my ($new,@new) = loadzone $zone, shift;
 
 my ($soa,$newsoa) = ($old,$new);
 
-sub doit { print "send\nanswer\n"; }
-
 my $size = 0;
+
+sub doit {
+    my $len = shift;
+    # Do not do a no-op.
+    return if $size == -$len;
+    print "show\n" if $verbosity =~ m{q};
+    print "send\n";
+    print "answer\n" if $verbosity =~ m{r};
+}
+
 sub emit {
     my $cmd = "@_";
     $size -= length $cmd;
     if ($size <= 0) {
-	# Don't do a no-op the first time.
-	doit if $size > -length $cmd;
+	doit length $cmd;
 	# Keep within 64 KiB DNS packet limit and allow for slop.
 	$size = 50000;
-	# Use SOA serial for race protection
+	# Use SOA serial for race protection.
 	$soa =~ $soare;
 	print "prereq yxrrset $1 $3 $4 $5";
 	my $min = $soamin{$soamode}();
@@ -146,7 +158,7 @@ $act[rrcmp]()
     while defined $old and defined $new;
 del while defined $old;
 add while defined $new;
-doit if $size > 0;
+doit 0;
 
 exit;
 
@@ -190,6 +202,13 @@ UNIX "seconds since the epoch" value. In the latter two cases if the
 current serial number is larger than the current time or date it is
 just incremented.
 
+=item B<-v> [q][r]
+
+Control verbosity.
+The B<q> flag causes queries to be printed.
+The B<r> flag causes responses to be printed.
+To make C<nsdiff> quiet, use B<-v ''>.
+
 =back
 
 The following options are passed to C<dig> to modify its SOA and AXFR
@@ -231,6 +250,11 @@ Error emitted if the first argument's syntax is wrong.
 =item C<usage: ...>
 
 Error emitted if the command line arguments are wrong.
+
+=item C<ignoring dig options when loading old zone from file>
+
+Warning emitted when the command line includes options for C<dig>
+as well as an old zone source file.
 
 =item C<loading zone I<zone> from AXFR>
 
