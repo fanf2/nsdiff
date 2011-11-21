@@ -30,12 +30,6 @@ my %soamin =
     }
 );
 
-sub bumpsoa {
-    my $s = shift;
-    my $m = $soamin{$soamode}();
-    return $s >= $m ? $s + 1 : $m;
-}
-
 # normalize whitespace and remove DNSSEC records
 sub cleanzone {
     my @zone = grep {
@@ -80,12 +74,9 @@ EOF
 }
 while (@ARGV and $ARGV[0] =~ m{^-[Sbky]$}) {
     if ($ARGV[0] eq "-S") {
-	if (exists $soamin{$ARGV[1]}) {
-	    $soamode = $ARGV[1];
-	    splice @ARGV, 0, 2;
-	} else {
-	    usage;
-	}
+	usage unless exists $soamin{$ARGV[1]};
+	$soamode = $ARGV[1];
+	splice @ARGV, 0, 2;
     } else {
 	$digopts = join " ", $digopts, splice @ARGV, 0, 2;
     }
@@ -118,7 +109,8 @@ sub emit {
 	# Use SOA serial for race protection
 	$soa =~ $soare;
 	print "prereq yxrrset $1 $3 $4 $5";
-	my $serial = bumpsoa $4;
+	my $min = $soamin{$soamode}();
+	my $serial = $4 >= $min ? $4 + 1 : $min;
 	$newsoa =~ $soare;
 	print "update add ", $soa = "$1 $2 $3 $serial $5";
     }
