@@ -11,7 +11,7 @@ my $labels = qr{$label(?:[.]$label)*[.]?};
 my $wlabels = qr{(?:[*][.]|$ulabels)?$labels};
 my $zonere = qr{^$labels$};
 my $soare = qr{^($labels) (\d+) (IN SOA $labels $labels) (\d+) (\d+ \d+ \d+ \d+\n)$};
-my $cmpre = qr{^($wlabels) \d+ IN ([A-Z][A-Z0-9]*) .*\n$};
+my $cmpre = qr{^($wlabels) };
 
 my $compilezone = 'named-compilezone -i local -k warn -n warn -o -';
 
@@ -114,11 +114,12 @@ sub add {
 }
 
 sub rrcmp {
-    my ($newname,$newtype) = ($new =~ $cmpre);
-    my ($oldname,$oldtype) = ($old =~ $cmpre);
-    # If name and type are equal, always delete old RRs before adding
-    # new ones. This ensures TTL adjustments are handled correctly.
-    return ($newname cmp $oldname or $newtype cmp $oldtype or $new ne $old);
+    my $newname = ($new =~ $cmpre);
+    my $oldname = ($old =~ $cmpre);
+    # If the names are equal, always delete old RRs before adding new
+    # ones. This ensures TTL adjustments and CNAME/other replacements
+    # are handled correctly.
+    return ($newname cmp $oldname or $new ne $old);
 }
 
 bumpsoa;
@@ -280,7 +281,8 @@ Feedback is welcome.
 
 =head1 ACKNOWLEDGMENTS
 
-Thanks to Terry Burton at the University of Leicester for providing
+Thanks to Terry Burton at the University of Leicester and Piete Brooks
+at the University of Cambridge Computer Laboratory for providing
 useful feedback.
 
 =head1 SEE ALSO
