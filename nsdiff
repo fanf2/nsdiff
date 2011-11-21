@@ -56,7 +56,7 @@ my $label = qr{[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?};
 my $ulabels = qr{(?:_$label[.])+};
 my $labels = qr{$label(?:[.]$label)*[.]?};
 my $wlabels = qr{(?:[*][.]|$ulabels)?$labels};
-my $zonere = qr{^$labels$};
+my $fqdnre = qr{^$labels$};
 my $soare = qr{^($labels) (\d+) (IN SOA $labels $labels) (\d+) (\d+ \d+ \d+ \d+\n)$};
 my $cmpre = qr{^($wlabels) };
 
@@ -79,7 +79,7 @@ sub axfrzone {
     my @soa = split ' ', qx{dig @digopts +short soa $zone};
     my $master = $soa[0];
     fail "could not get SOA record for $zone"
-	unless defined $master and $master =~ $zonere;
+	unless defined $master and $master =~ $fqdnre;
     wail "loading zone $zone from AXFR";
     return cleanzone qx{dig @digopts axfr $zone \@$master | $compilezone $zone /dev/stdin};
 }
@@ -91,7 +91,7 @@ sub loadzone {
 }
 
 my $zone = shift;
-fail "not a domain name: $zone" unless $zone =~ $zonere;
+fail "not a domain name: $zone" unless $zone =~ $fqdnre;
 
 my ($old,@old) = (@ARGV == 1)
                   ? axfrzone $zone
