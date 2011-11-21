@@ -5,6 +5,9 @@
 use warnings;
 use strict;
 
+sub fail { die  "nsdiff: @_\n"; }
+sub wail { warn "nsdiff: @_\n"; }
+
 my $label = qr{[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?};
 my $ulabels = qr{(?:_$label[.])+};
 my $labels = qr{$label(?:[.]$label)*[.]?};
@@ -16,9 +19,22 @@ my $cmpre = qr{^($wlabels) };
 my $compilezone = 'named-compilezone -i local -k warn -n warn -o -';
 
 my $digopts = "";
+my $soamode = 'serial';
 
-sub wail { warn "nsdiff: @_\n"; }
-sub fail { die  "nsdiff: @_\n"; }
+my %soamin =
+(   serial => sub { return 0; },
+    unix => sub { return time; },
+    date => sub {
+	my ($sec,$min,$hour,$mday,$mon,$year) = gmtime;
+	return sprintf "%04d%02d%02d%02d", 1900+$year,1+$mon,$mday,0;
+    }
+);
+
+sub bumpsoa {
+    my $s = shift;
+    my $m = $soamin{$soamode}();
+    return $s >= $m ? $s + 1 : $m;
+}
 
 # normalize whitespace and remove DNSSEC records
 sub cleanzone {
@@ -55,17 +71,28 @@ usage: nsdiff [options] <zone> [old] <new>
   "old" version into the "new" version, ignoring DNSSEC records.
   If the "old" file is omitted, `nsdiff` will AXFR the zone.
 options:
-  -b address          bind dig query client address
-  -k keyfile          dig query TSIG key
-  -y [hmac:]name:key  dig query TSIG key
+  -S date|serial|unix  SOA serial update mode
+  -b address           bind dig query client address
+  -k keyfile           dig query TSIG key
+  -y [hmac:]name:key   dig query TSIG key
 EOF
     exit 1;
 }
-while (@ARGV and $ARGV[0] =~ m{^-[bky]$}) {
-    $digopts = join " ", $digopts, splice @ARGV, 0, 2;
+while (@ARGV and $ARGV[0] =~ m{^-[Sbky]$}) {
+    if ($ARGV[0] eq "-S") {
+	if (exists $soamin{$ARGV[1]}) {
+	    $soamode = $ARGV[1];
+	    splice @ARGV, 0, 2;
+	} else {
+	    usage;
+	}
+    } else {
+	$digopts = join " ", $digopts, splice @ARGV, 0, 2;
+    }
 }
 usage if $digopts and @ARGV != 2;
 usage if @ARGV != 2 && @ARGV != 3;
+usage if $ARGV[0] =~ m{^-};
 
 my $zone = shift;
 fail "not a domain name: $zone" unless $zone =~ $zonere;
@@ -90,10 +117,10 @@ sub emit {
 	$size = 50000;
 	# Use SOA serial for race protection
 	$soa =~ $soare;
-	my $serial = $4 + 1;
-	print "prereq yxrrset", $1, $3, $4, $5;
+	print "prereq yxrrset $1 $3 $4 $5";
+	my $serial = bumpsoa $4;
 	$newsoa =~ $soare;
-	print "update add", $soa = "$1 $2 $3 $serial $5";
+	print "update add ", $soa = "$1 $2 $3 $serial $5";
     }
     print $cmd;
 }
@@ -140,7 +167,7 @@ nsdiff - create "nsupdate" script from DNS zone file diffrences
 =head1 SYNOPSIS
 
 nsdiff [B<-b> I<address>] [B<-k> I<keyfile>] [B<-y> [I<hmac>:]I<name>:I<key>]
-       <I<zone>> [I<old>] <I<new>>
+       [B<-S> I<date>|I<serial>|I<unix>] <I<zone>> [I<old>] <I<new>>
 
 =head1 DESCRIPTION
 
@@ -159,6 +186,19 @@ transfer the zone from its master server as identified in the zone's
 SOA MNAME field.
 
 =head1 OPTIONS
+
+=over
+
+=item B<-S> I<date>|I<serial>|I<unix>
+
+Choose the SOA serial number update mode: the default I<serial> just
+increments the serial number; I<date> uses a number of the form
+YYYYMMDDnn and allows for up to 100 updates per day; I<unix> uses the
+UNIX "seconds since the epoch" value. In the latter two cases if the
+current serial number is larger than the current time or date it is
+just incremented.
+
+=back
 
 The following options are passed to C<dig> to modify its SOA and AXFR
 queries:
