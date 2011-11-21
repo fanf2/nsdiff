@@ -39,8 +39,9 @@ wail "ignoring dig options when loading old zone from file"
 usage if $opt{v} && $opt{v} !~ m{^[qr]*$};
 my $verbosity = $opt{v} || 'r';
 
+my $soamin = 0;
 my %soamin =
-(   serial => sub { return 0; },
+(   serial => sub { return $soamin; },
     unix => sub { return time; },
     date => sub {
 	my ($sec,$min,$hour,$mday,$mon,$year) = gmtime;
@@ -48,6 +49,7 @@ my %soamin =
     }
 );
 my $soamode = $opt{S} || 'serial';
+$soamin = $soamode, $soamode = 'serial' if $soamode =~ m{^[0-9]+$};
 usage unless exists $soamin{$soamode};
 
 # These variables are unlikely to need changing.
@@ -171,7 +173,7 @@ nsdiff - create "nsupdate" script from DNS zone file diffrences
 =head1 SYNOPSIS
 
 nsdiff [B<-b> I<address>] [B<-k> I<keyfile>] [B<-y> [I<hmac>:]I<name>:I<key>]
-       [B<-S> I<date>|I<serial>|I<unix>] <I<zone>> [I<old>] <I<new>>
+       [B<-S> B<date>|B<serial>|B<unix>|I<num>] <I<zone>> [I<old>] <I<new>>
 
 =head1 DESCRIPTION
 
@@ -193,14 +195,15 @@ SOA MNAME field.
 
 =over
 
-=item B<-S> I<date>|I<serial>|I<unix>
+=item B<-S> B<date>|B<serial>|B<unix>
 
 Choose the SOA serial number update mode: the default I<serial> just
 increments the serial number; I<date> uses a number of the form
 YYYYMMDDnn and allows for up to 100 updates per day; I<unix> uses the
-UNIX "seconds since the epoch" value. In the latter two cases if the
-current serial number is larger than the current time or date it is
-just incremented.
+UNIX "seconds since the epoch" value. You can also specify an explicit
+serial number value. In all cases, if the current serial number is
+larger than the target value it is just incremented. Serial number
+wrap-around is not supported.
 
 =item B<-v> [q][r]
 
