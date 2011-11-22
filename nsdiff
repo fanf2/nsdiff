@@ -137,8 +137,8 @@ sub emit {
 
 sub del_add {
     my ($owner,$del,$add) = @_;
-    emit "update delete", $owner, $_ for @$del;
-    emit "update add",    $owner, $_ for @$add;
+    emit "update delete", $owner, $_ for sort @$del;
+    emit "update add",    $owner, $_ for sort @$add;
 }
 
 my (%del,%add);
