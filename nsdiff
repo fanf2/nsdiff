@@ -10,6 +10,9 @@ use Getopt::Std;
 sub fail { die  "nsdiff: @_\n"; }
 sub wail { warn "nsdiff: @_\n"; }
 
+# for named-compilezone
+$ENV{PATH} .= ":/sbin:/usr/sbin:/usr/local/sbin";
+
 sub usage {
     print STDERR <<EOF;
 usage: nsdiff [options] <zone> [old] <new>
