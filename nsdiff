@@ -62,18 +62,16 @@ my $ulabels = qr{(?:_$label[.])+};
 my $labels = qr{$label(?:[.]$label)*[.]?};
 my $wlabels = qr{(?:[*][.]|$ulabels)?$labels};
 my $fqdnre = qr{^$labels$};
-my $soare = qr{^($labels) (\d+) (IN SOA $labels $labels) (\d+) (\d+ \d+ \d+ \d+\n)$};
+my $soare = qr{^($labels)\s+(\d+)\s+(IN\s+SOA\s+$labels\s+$labels)
+	       \s+(\d+)\s+(\d+\s+\d+\s+\d+\s+\d+\n)$}x;
 
 my $compilezone = 'named-compilezone -i local -k warn -n warn -o -';
 
 # normalize whitespace and remove DNSSEC records
 sub cleanzone {
-    my @zone = grep {
-	s{\s+}{ }g;
-	s{\s*$}{\n};
-	not m{^$wlabels \d+ IN (NSEC|NSEC3|NSEC3PARAM|RRSIG|DNSKEY|TYPE65534) };
+    my ($soa,@zone) = grep {
+	not m{^$wlabels\s+\d+\s+IN\s+(NSEC|NSEC3|NSEC3PARAM|RRSIG|DNSKEY|TYPE65534)\s+};
     } @_;
-    my $soa = shift @zone;
     fail "missing SOA record" unless defined $soa and $soa =~ $soare;
     # put zone into keys of a hash
     my %zone; @zone{@zone} = ();
