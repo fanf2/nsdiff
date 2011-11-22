@@ -12,6 +12,7 @@ sub wail { warn "nsdiff: @_\n"; }
 
 # for named-compilezone
 $ENV{PATH} .= ":/sbin:/usr/sbin:/usr/local/sbin";
+my $compilezone = 'named-compilezone -i local -k warn -n warn -o -';
 
 sub usage {
     print STDERR <<EOF;
@@ -55,19 +56,14 @@ my $soamode = $opt{S} || 'serial';
 $soamin = $soamode, $soamode = 'serial' if $soamode =~ m{^[0-9]+$};
 usage unless exists $soamin{$soamode};
 
-# We are relatively strict about domain name syntax.
-
-my $label = qr{[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?};
-my $labels = qr{$label(?:[.]$label)*[.]?};
-my $ulabels = qr{(?:_$label[.])+}; # for SRV etc.
-my $wlabels = qr{(?:[*][.]|$ulabels)?$labels};
-my $dnssec = qr{^$wlabels\s+\d+\s+IN\s+
-		(NSEC|NSEC3|NSEC3PARAM|RRSIG|DNSKEY|TYPE65534)\s+}x;
-my $soare = qr{^($labels)\s+(\d+)\s+(IN\s+SOA\s+$labels\s+$labels)
+my $zone = shift; $zone =~ s{[.]?$}{.};
+my $zonere = quotemeta $zone;
+my $domain = qr{(?:[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?[.])+};
+my $dnssec = qr{^\S+\s+\d+\s+IN\s+(NSEC|NSEC3|NSEC3PARAM|RRSIG|DNSKEY|TYPE65534)\s+}x;
+my $soare = qr{^$zonere\s+(\d+)\s+(IN\s+SOA\s+$domain\s+$domain)
 	       \s+(\d+)\s+(\d+\s+\d+\s+\d+\s+\d+\n)$}x;
-my $fqdnre = qr{^$labels$};
 
-my $compilezone = 'named-compilezone -i local -k warn -n warn -o -';
+fail "not a domain name: $zone" unless $zone =~ m{^$domain$};
 
 # Check there is a SOA and remove DNSSEC records.
 # Store zone data in the keys of a hash.
@@ -84,8 +80,8 @@ sub axfrzone {
     my @soa = split ' ', qx{dig @digopts +short soa $zone};
     my $master = $soa[0];
     fail "could not get SOA record for $zone"
-	unless defined $master and $master =~ $fqdnre;
-    wail "loading zone $zone from AXFR";
+	unless defined $master and $master =~ m{^$domain$};
+    wail "loading zone $zone via AXFR from $master";
     return cleanzone qx{dig @digopts axfr $zone \@$master | $compilezone $zone /dev/stdin};
 }
 
@@ -94,9 +90,6 @@ sub loadzone {
     wail "loading zone $zone from file $file";
     return cleanzone qx{$compilezone -j $zone '$file'};
 }
-
-my $zone = shift;
-fail "not a domain name: $zone" unless $zone =~ $fqdnre;
 
 my ($soa,$old) = (@ARGV == 1)
                   ? axfrzone $zone
@@ -145,11 +138,11 @@ while (@cmd) {
     $length += length $cmd[$i++] while $length < 50000 and $i < @cmd;
     my @batch = splice @cmd, 0, $i;
     $soa =~ $soare;
-    print "prereq yxrrset $1 $3 $4 $5";
+    print "prereq yxrrset $zone $2 $3 $4";
     my $min = $soamin{$soamode}();
-    my $serial = $4 >= $min ? $4 + 1 : $min;
+    my $serial = $3 >= $min ? $3 + 1 : $min;
     $newsoa =~ $soare;
-    print "update add ", $soa = "$1 $2 $3 $serial $5";
+    print "update add ", $soa = "$zone $1 $2 $serial $4";
     print @batch;
     print "show\n" if $verbosity =~ m{q};
     print "send\n";
