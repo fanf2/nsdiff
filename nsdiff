@@ -43,18 +43,17 @@ wail "ignoring dig options when loading old zone from file"
 usage if $opt{v} && $opt{v} !~ m{^[qr]*$};
 my $verbosity = $opt{v} || 'r';
 
-my $soamin = 0;
-my %soamin =
-(   serial => sub { return $soamin; },
-    unix => sub { return time; },
-    date => sub {
+my $soamode = $opt{S} || 'serial';
+my $soafun = $soamode =~ m{^[0-9]+$} ?
+             sub { return $soamode } : {
+   serial => sub { return 0 },
+     unix => sub { return time; },
+     date => sub {
 	my ($sec,$min,$hour,$mday,$mon,$year) = gmtime;
 	return sprintf "%04d%02d%02d%02d", 1900+$year,1+$mon,$mday,0;
     }
-);
-my $soamode = $opt{S} || 'serial';
-$soamin = $soamode, $soamode = 'serial' if $soamode =~ m{^[0-9]+$};
-usage unless exists $soamin{$soamode};
+}->{$soamode} or usage;
+my $soamin = $soafun->();
 
 my $zone = shift; $zone =~ s{[.]?$}{.};
 my $zonere = quotemeta $zone;
@@ -139,8 +138,7 @@ while (@cmd) {
     my @batch = splice @cmd, 0, $i;
     $soa =~ $soare;
     print "prereq yxrrset $zone $2 $3 $4";
-    my $min = $soamin{$soamode}();
-    my $serial = $3 >= $min ? $3 + 1 : $min;
+    my $serial = $3 >= $soamin ? $3 + 1 : $soamin;
     $newsoa =~ $soare;
     print "update add ", $soa = "$zone $1 $2 $serial $4";
     print @batch;
