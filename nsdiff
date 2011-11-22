@@ -17,11 +17,11 @@ usage: nsdiff [options] <zone> [old] <new>
   "old" version into the "new" version, ignoring DNSSEC records.
   If the "old" file is omitted, `nsdiff` will AXFR the zone.
 options:
-  -S date|serial|unix  SOA serial update mode
-  -v [q][r]            verbose query and/or reply
-  -b address           dig query source address
-  -k keyfile           dig query TSIG key
-  -y [hmac:]name:key   dig query TSIG key
+  -S date|serial|unix|num  SOA serial update mode or set number
+  -v [q][r]                verbose query and/or reply
+  -b address               dig query source address
+  -k keyfile               dig query TSIG key
+  -y [hmac:]name:key       dig query TSIG key
 EOF
     exit 1;
 }
@@ -195,7 +195,7 @@ SOA MNAME field.
 
 =over
 
-=item B<-S> B<date>|B<serial>|B<unix>
+=item B<-S> B<date>|B<serial>|B<unix>|I<num>
 
 Choose the SOA serial number update mode: the default I<serial> just
 increments the serial number; I<date> uses a number of the form
