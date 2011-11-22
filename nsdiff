@@ -63,7 +63,6 @@ my $labels = qr{$label(?:[.]$label)*[.]?};
 my $wlabels = qr{(?:[*][.]|$ulabels)?$labels};
 my $fqdnre = qr{^$labels$};
 my $soare = qr{^($labels) (\d+) (IN SOA $labels $labels) (\d+) (\d+ \d+ \d+ \d+\n)$};
-my $cmpre = qr{^($wlabels) };
 
 my $compilezone = 'named-compilezone -i local -k warn -n warn -o -';
 
@@ -76,7 +75,9 @@ sub cleanzone {
     } @_;
     my $soa = shift @zone;
     fail "missing SOA record" unless defined $soa and $soa =~ $soare;
-    return $soa, sort @zone;
+    # put zone into keys of a hash
+    my %zone; @zone{@zone} = ();
+    return $soa, \%zone;
 }
 
 sub axfrzone {
@@ -98,12 +99,10 @@ sub loadzone {
 my $zone = shift;
 fail "not a domain name: $zone" unless $zone =~ $fqdnre;
 
-my ($old,@old) = (@ARGV == 1)
+my ($soa,$old) = (@ARGV == 1)
                   ? axfrzone $zone
                   : loadzone $zone, shift;
-my ($new,@new) = loadzone $zone, shift;
-
-my ($soa,$newsoa) = ($old,$new);
+my ($newsoa,$new) = loadzone $zone, shift;
 
 my $size = 0;
 
@@ -134,35 +133,47 @@ sub emit {
     print $cmd;
 }
 
-sub skip {
-    $old = shift @old;
-    $new = shift @new;
-}
-sub del {
-    $old =~ m{^($wlabels) \d+ (.*)$}s;
-    emit "update delete", $1, $2;
-    $old = shift @old;
-}
-sub add {
-    emit "update add", $new;
-    $new = shift @new;
+# Do deletions and additions for each owner name in that order.
+# This ensures TTL adjustments and CNAME/other replacements are
+# handled correctly.
+
+sub del_add {
+    my ($owner,$del,$add) = @_;
+    emit "update delete", $owner, $_ for @$del;
+    emit "update add",    $owner, $_ for @$add;
 }
 
-sub rrcmp {
-    my $newname = ($new =~ $cmpre);
-    my $oldname = ($old =~ $cmpre);
-    # If the names are equal, always delete old RRs before adding new
-    # ones. This ensures TTL adjustments and CNAME/other replacements
-    # are handled correctly.
-    return ($newname cmp $oldname or $new ne $old);
+my (%del,%add);
+for my $rr (keys %$old) {
+    delete $old->{$rr};
+    if (exists $new->{$rr}) {
+	# Filter out unchanged records.
+	delete $new->{$rr};
+    } else {
+	# Remember deletions.
+	my ($owner,$ttl,$data) = split ' ', $rr, 3;
+	push @{$del{$owner}}, $data;
+    }
+}
+for my $rr (keys %$new) {
+    delete $new->{$rr};
+    # Remember additions.
+    my ($owner,$data) = split ' ', $rr, 2;
+    push @{$add{$owner}}, $data;
 }
 
-skip; # soa records
-my @act = (\&skip, \&del, \&add);
-$act[rrcmp]()
-    while defined $old and defined $new;
-del while defined $old;
-add while defined $new;
+# Output changes.
+
+for my $owner (keys %del) {
+    del_add $owner, $del{$owner}, $add{$owner};
+    delete $add{$owner} if exists $add{$owner};
+    delete $del{$owner};
+}
+for my $owner (keys %add) {
+    del_add $owner, undef, $add{$owner};
+    delete $add{$owner};
+}
+
 doit 0;
 
 exit;
