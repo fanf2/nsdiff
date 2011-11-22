@@ -55,15 +55,17 @@ my $soamode = $opt{S} || 'serial';
 $soamin = $soamode, $soamode = 'serial' if $soamode =~ m{^[0-9]+$};
 usage unless exists $soamin{$soamode};
 
-# These variables are unlikely to need changing.
+# We are relatively strict about domain name syntax.
 
 my $label = qr{[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?};
-my $ulabels = qr{(?:_$label[.])+};
 my $labels = qr{$label(?:[.]$label)*[.]?};
+my $ulabels = qr{(?:_$label[.])+}; # for SRV etc.
 my $wlabels = qr{(?:[*][.]|$ulabels)?$labels};
-my $fqdnre = qr{^$labels$};
+my $dnssec = qr{^$wlabels\s+\d+\s+IN\s+
+		(NSEC|NSEC3|NSEC3PARAM|RRSIG|DNSKEY|TYPE65534)\s+}x;
 my $soare = qr{^($labels)\s+(\d+)\s+(IN\s+SOA\s+$labels\s+$labels)
 	       \s+(\d+)\s+(\d+\s+\d+\s+\d+\s+\d+\n)$}x;
+my $fqdnre = qr{^$labels$};
 
 my $compilezone = 'named-compilezone -i local -k warn -n warn -o -';
 
@@ -73,10 +75,8 @@ my $compilezone = 'named-compilezone -i local -k warn -n warn -o -';
 sub cleanzone {
     my ($soa,$zone) = shift;
     fail "missing SOA record" unless defined $soa and $soa =~ $soare;
-    $zone->{$_} = 1 for grep {
-	not m{^$wlabels\s+\d+\s+IN\s+(NSEC|NSEC3|NSEC3PARAM|RRSIG|DNSKEY|TYPE65534)\s+};
-    } @_;
-    return $soa, $zone;
+    $zone->{$_} = 1 for grep { not m{$dnssec} } @_;
+    return ($soa,$zone);
 }
 
 sub axfrzone {
