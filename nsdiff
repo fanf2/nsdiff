@@ -67,15 +67,16 @@ my $soare = qr{^($labels)\s+(\d+)\s+(IN\s+SOA\s+$labels\s+$labels)
 
 my $compilezone = 'named-compilezone -i local -k warn -n warn -o -';
 
-# normalize whitespace and remove DNSSEC records
+# Check there is a SOA and remove DNSSEC records.
+# Store zone data in the keys of a hash.
+
 sub cleanzone {
-    my ($soa,@zone) = grep {
+    my ($soa,$zone) = shift;
+    fail "missing SOA record" unless defined $soa and $soa =~ $soare;
+    $zone->{$_} = 1 for grep {
 	not m{^$wlabels\s+\d+\s+IN\s+(NSEC|NSEC3|NSEC3PARAM|RRSIG|DNSKEY|TYPE65534)\s+};
     } @_;
-    fail "missing SOA record" unless defined $soa and $soa =~ $soare;
-    # put zone into keys of a hash
-    my %zone; @zone{@zone} = ();
-    return $soa, \%zone;
+    return $soa, $zone;
 }
 
 sub axfrzone {
@@ -102,77 +103,58 @@ my ($soa,$old) = (@ARGV == 1)
                   : loadzone $zone, shift;
 my ($newsoa,$new) = loadzone $zone, shift;
 
-my $size = 0;
-
-sub doit {
-    my $len = shift;
-    # Do not do a no-op.
-    return if $size == -$len;
-    print "show\n" if $verbosity =~ m{q};
-    print "send\n";
-    print "answer\n" if $verbosity =~ m{r};
-}
-
-sub emit {
-    my $cmd = "@_";
-    $size -= length $cmd;
-    if ($size <= 0) {
-	doit length $cmd;
-	# Keep within 64 KiB DNS packet limit and allow for slop.
-	$size = 50000;
-	# Use SOA serial for race protection.
-	$soa =~ $soare;
-	print "prereq yxrrset $1 $3 $4 $5";
-	my $min = $soamin{$soamode}();
-	my $serial = $4 >= $min ? $4 + 1 : $min;
-	$newsoa =~ $soare;
-	print "update add ", $soa = "$1 $2 $3 $serial $5";
-    }
-    print $cmd;
-}
-
-# Do deletions and additions for each owner name in that order.
-# This ensures TTL adjustments and CNAME/other replacements are
-# handled correctly.
-
-sub del_add {
-    my ($owner,$del,$add) = @_;
-    emit "update delete", $owner, $_ for sort @{$del or []};
-    emit "update add",    $owner, $_ for sort @{$add or []};
-}
+# Remove unchanged RRs, and save each name's deletions and additions.
 
 my (%del,%add);
+
 for my $rr (keys %$old) {
     delete $old->{$rr};
-    if (exists $new->{$rr}) {
-	# Filter out unchanged records.
-	delete $new->{$rr};
-    } else {
-	# Remember deletions.
-	my ($owner,$ttl,$data) = split ' ', $rr, 3;
-	push @{$del{$owner}}, $data;
-    }
+    next if delete $new->{$rr};
+    my ($owner,$ttl,$data) = split ' ', $rr, 3;
+    push @{$del{$owner}}, $data;
 }
 for my $rr (keys %$new) {
     delete $new->{$rr};
-    # Remember additions.
     my ($owner,$data) = split ' ', $rr, 2;
     push @{$add{$owner}}, $data;
 }
 
-# Output changes.
+# For each owner name prepare deletion commands followed by addition
+# commands. This ensures TTL adjustments and CNAME/other replacements
+# are handled correctly.
 
+my @cmd = ();
+
+sub update {
+    my ($cmd,$owner,$rrs) = @_;
+    push @cmd, map "update $cmd $owner $_", sort @$rrs;
+}
 for my $owner (keys %del) {
-    del_add $owner, $del{$owner}, $add{$owner};
-    delete $add{$owner} if exists $add{$owner};
-    delete $del{$owner};
+    update 'delete', $owner, delete $del{$owner};
+    update 'add', $owner, delete $add{$owner} if exists $add{$owner};
 }
 for my $owner (keys %add) {
-    del_add $owner, undef, $add{$owner};
-    delete $add{$owner};
+    update 'add', $owner, delete $add{$owner};
 }
 
-doit 0;
+# Emit commands in batches that fit within the 64 KiB DNS packet limit.
+# Use a prerequisite based on the SOA record to catch races.
+
+while (@cmd) {
+    my ($length,$i) = (0,0);
+    $length += length $cmd[$i++] while $length < 50000 and $i < @cmd;
+    my @batch = splice @cmd, 0, $i;
+    $soa =~ $soare;
+    print "prereq yxrrset $1 $3 $4 $5";
+    my $min = $soamin{$soamode}();
+    my $serial = $4 >= $min ? $4 + 1 : $min;
+    $newsoa =~ $soare;
+    print "update add ", $soa = "$1 $2 $3 $serial $5";
+    print @batch;
+    print "show\n" if $verbosity =~ m{q};
+    print "send\n";
+    print "answer\n" if $verbosity =~ m{r};
+}
 
 exit;
 
