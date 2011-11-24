@@ -6,6 +6,7 @@ use warnings;
 use strict;
 
 use Getopt::Std;
+use POSIX;
 
 sub fail { die  "nsdiff: @_\n"; }
 sub wail { warn "nsdiff: @_\n"; }
@@ -49,11 +50,8 @@ my $soamode = $opt{S} || 'serial';
 my $soafun = $soamode =~ m{^[0-9]+$} ?
              sub { return $soamode } : {
    serial => sub { return 0 },
-     unix => sub { return time; },
-     date => sub {
-	my ($sec,$min,$hour,$mday,$mon,$year) = gmtime;
-	return sprintf "%04d%02d%02d%02d", 1900+$year,1+$mon,$mday,0;
-    }
+     unix => sub { return time },
+     date => sub { return strftime "%Y%m%d00", gmtime },
 }->{$soamode} or usage;
 my $soamin = $soafun->();
 
