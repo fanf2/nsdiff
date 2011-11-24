@@ -58,7 +58,7 @@ my $soamin = $soafun->();
 my $zone = shift; $zone =~ s{[.]?$}{.};
 my $zonere = quotemeta $zone;
 my $domain = qr{(?:[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?[.])+};
-my $dnssec = qr{^\S+\s+\d+\s+IN\s+(NSEC|NSEC3|NSEC3PARAM|RRSIG|DNSKEY|TYPE65534)\s+}x;
+my $dnssec = qr{^\S+\s+\d+\s+IN\s+(NSEC|NSEC3|NSEC3PARAM|RRSIG|DNSKEY|TYPE65534)\s+};
 my $soare = qr{^$zonere\s+(\d+)\s+(IN\s+SOA\s+$domain\s+$domain)
 	       \s+(\d+)\s+(\d+\s+\d+\s+\d+\s+\d+\n)$}x;
 
@@ -68,10 +68,10 @@ fail "not a domain name: $zone" unless $zone =~ m{^$domain$};
 # Store zone data in the keys of a hash.
 
 sub cleanzone {
-    my ($soa,$zone) = shift;
+    my ($soa,%zone) = shift;
     fail "missing SOA record" unless defined $soa and $soa =~ $soare;
-    $zone->{$_} = 1 for grep { not m{$dnssec} } @_;
-    return ($soa,$zone);
+    $zone{$_} = 1 for grep { not m{$dnssec} } @_;
+    return ($soa,\%zone);
 }
 
 sub axfrzone {
@@ -113,13 +113,14 @@ for my $rr (keys %$new) {
 
 # For each owner name prepare deletion commands followed by addition
 # commands. This ensures TTL adjustments and CNAME/other replacements
-# are handled correctly.
+# are handled correctly. Ensure each owner's changes are not split below.
 
-my @cmd = ();
+my ($lastown,$cmd,@cmd) = ("","");
 
 sub update {
-    my ($cmd,$owner,$rrs) = @_;
-    push @cmd, map "update $cmd $owner $_", sort @$rrs;
+    my ($addel,$owner,$rrs) = @_;
+    if ($lastown ne $owner) { push @cmd, $cmd; $cmd = $lastown = "" }
+    $cmd .= join '', map "update $addel $owner $_", sort @$rrs;
 }
 for my $owner (keys %del) {
     update 'delete', $owner, delete $del{$owner};
@@ -128,6 +129,7 @@ for my $owner (keys %del) {
 for my $owner (keys %add) {
     update 'add', $owner, delete $add{$owner};
 }
+push @cmd, $cmd;
 
 # Emit commands in batches that fit within the 64 KiB DNS packet limit.
 # Use a prerequisite based on the SOA record to catch races.
@@ -285,10 +287,12 @@ and run these commands:
 =head1 CAVEATS
 
 Note that C<nsdiff> does not maintain the transactional semantics of
-native DNS update requests when the diff is large - it applies the changes
-in multiple update requests. This gives you a small risk of clients not
-seeing a change applied atomically when that matters (e.g. altering an MX
-and creating the new target in the same transaction). You may be able to
+native DNS update requests when the diff is large - it applies the
+changes in multiple update requests. To minimise the problems this may
+cause, C<nsdiff> ensures each domain name's changes are all in the same
+update request. There is still a small risk of clients not seeing a
+change applied atomically when that matters (e.g. altering an MX and
+creating the new target in the same transaction). You may be able to
 avoid this if you have good control over what gets changed when.
 
 Also, if something else is making changes to the zone at the time you run
