@@ -21,16 +21,18 @@ usage: nsdiff [options] <zone> [old] <new>
   "old" version into the "new" version, ignoring DNSSEC records.
   If the "old" file is omitted, `nsdiff` will AXFR the zone.
 options:
-  -S date|serial|unix|num  SOA serial update mode or set number
-  -v [q][r]                verbose query and/or reply
-  -b address               dig query source address
-  -k keyfile               dig query TSIG key
-  -y [hmac:]name:key       dig query TSIG key
+  -0                  Allow a domain's updates to span packets
+  -1                  Abort if update doesn't fit in one packet
+  -S num|mode         SOA serial number or update mode
+  -v [q][r]           verbose query and/or reply
+  -b address          dig query source address
+  -k keyfile          dig query TSIG key
+  -y [hmac:]name:key  dig query TSIG key
 EOF
     exit 1;
 }
 my %opt;
-usage unless getopts 'qv:S:b:k:y:', \%opt;
+usage unless getopts '01qv:S:b:k:y:', \%opt;
 usage unless @ARGV == 2 || @ARGV == 3;
 
 my @digopts;
@@ -115,29 +117,36 @@ for my $rr (keys %$new) {
 # commands. This ensures TTL adjustments and CNAME/other replacements
 # are handled correctly. Ensure each owner's changes are not split below.
 
-my ($lastown,$cmd,@cmd) = ("","");
+my (@batch,@script);
 
+sub emit {
+    if ($opt{0}) { push @script, splice @batch }
+    else { push @script, join '', splice @batch }
+}
 sub update {
     my ($addel,$owner,$rrs) = @_;
-    if ($lastown ne $owner) { push @cmd, $cmd; $cmd = $lastown = "" }
-    $cmd .= join '', map "update $addel $owner $_", sort @$rrs;
+    push @batch, map "update $addel $owner $_", sort @$rrs;
 }
 for my $owner (keys %del) {
     update 'delete', $owner, delete $del{$owner};
     update 'add', $owner, delete $add{$owner} if exists $add{$owner};
+    emit;
 }
 for my $owner (keys %add) {
     update 'add', $owner, delete $add{$owner};
+    emit;
 }
-push @cmd, $cmd;
 
-# Emit commands in batches that fit within the 64 KiB DNS packet limit.
+# Emit commands in batches that fit within the 64 KiB DNS packet limit
+# assuming textual representation is not smaller than binary encoding.
 # Use a prerequisite based on the SOA record to catch races.
 
-while (@cmd) {
+my $maxlen = 65536;
+while (@script) {
     my ($length,$i) = (0,0);
-    $length += length $cmd[$i++] while $length < 50000 and $i < @cmd;
-    my @batch = splice @cmd, 0, $i;
+    $length += length $script[$i++] while $length < $maxlen and $i < @script;
+    my @batch = splice @script, 0, $length < $maxlen ? $i : $i - 1;
+    fail "update does not fit in packet" if @batch == 0 or $opt{1} and @script != 0;
     $soa =~ $soare;
     print "prereq yxrrset $zone $2 $3 $4";
     my $serial = $3 >= $soamin ? $3 + 1 : $soamin;
@@ -160,7 +169,7 @@ nsdiff - create "nsupdate" script from DNS zone file diffrences
 =head1 SYNOPSIS
 
 nsdiff [B<-b> I<address>] [B<-k> I<keyfile>] [B<-y> [I<hmac>:]I<name>:I<key>]
-       [B<-S> B<date>|B<serial>|B<unix>|I<num>] <I<zone>> [I<old>] <I<new>>
+       [B<-0>|B<-1>] [B<-v> [q][r]] [B<-S> I<mode>|I<num>] <I<zone>> [I<old>] <I<new>>
 
 =head1 DESCRIPTION
 
@@ -181,6 +190,14 @@ SOA MNAME field.
 =head1 OPTIONS
 
 =over
+
+=item B<-0>
+
+Allow updates for one domain name to be split across multiple requests.
+
+=item B<-1>
+
+Abort if update does not fit in one request packet.
 
 =item B<-S> B<date>|B<serial>|B<unix>|I<num>
 
@@ -224,22 +241,25 @@ Literal TSIG key for AXFR query
 
 =over
 
-=item C<could not get SOA record for I<zone>>
-
-Error emitted when C<dig> fails to retreive the zone's SOA.
-
-=item C<missing SOA record>
-
-Error emitted when the output of C<named-compilezone> is incomplete,
-usually because the input file is erroneous.
+=item C<usage: ...>
 
 =item C<not a domain name: I<zone>>
 
-Error emitted if the first argument's syntax is wrong.
+Errors in the command line.
 
-=item C<usage: ...>
+=item C<could not get SOA record for I<zone>>
 
-Error emitted if the command line arguments are wrong.
+Failed to retreive the zone's SOA using C<dig>.
+
+=item C<update does not fit in packet>
+
+The changes for one domain name did not fit in 64 KiB, or the B<-1>
+option was specified and all the changes did not fit in 64 KiB.
+
+=item C<missing SOA record>
+
+The output of C<named-compilezone> is incomplete,
+usually because the input file is erroneous.
 
 =item C<ignoring dig options when loading old zone from file>
 
@@ -306,10 +326,7 @@ if this happens it should be safe to just re-run C<nsdiff | nsupdate>
 strongly).
 
 The current operational trade-offs in C<nsdiff> are not necessarily the
-right ones. For instance you might prefer to abort rather than split the
-changes into multiple transactions, and/or you might need to use another
-RR for consistency checks instead of or as well as the SOA serial number.
-Feedback is welcome.
+right ones. Feedback is welcome.
 
 =head1 AUTHOR
 
