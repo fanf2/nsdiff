@@ -24,6 +24,7 @@ usage: nsdiff [options] <zone> [old] <new>
 options:
   -0                  Allow a domain's updates to span packets
   -1                  Abort if update doesn't fit in one packet
+  -i regex            Ignore records matching the pattern
   -S num|mode         SOA serial number or update mode
   -v [q][r]           verbose query and/or reply
   -b address          dig query source address
@@ -33,7 +34,7 @@ EOF
     exit 1;
 }
 my %opt;
-usage unless getopts '01qv:S:b:k:y:', \%opt;
+usage unless getopts '01i:S:v:b:k:y:', \%opt;
 usage unless @ARGV == 2 || @ARGV == 3;
 
 my @digopts;
@@ -70,7 +71,7 @@ fail "not a domain name: $zone" unless $zone =~ m{^$domain$};
 sub cleanzone {
     my ($soa,%zone) = shift;
     fail "missing SOA record" unless defined $soa and $soa =~ $soare;
-    $zone{$_} = 1 for grep { not m{$dnssec} } @_;
+    $zone{$_} = 1 for grep { not m{$dnssec|$opt{q}}o } @_;
     return ($soa,\%zone);
 }
 
@@ -196,6 +197,12 @@ Allow updates for one domain name to be split across multiple requests.
 =item B<-1>
 
 Abort if update does not fit in one request packet.
+
+=item B<-i> I<regex>
+
+Ignore more DNS records. By default, C<nsdiff> strips out DNSSEC RRs
+before comparing zones. You can exclude irrelevant changes from the
+diff by supplying a I<regex> that matches the unwanted RRs.
 
 =item B<-S> B<date>|B<serial>|B<unix>|I<num>
 
@@ -348,6 +355,6 @@ useful feedback.
 
 =head1 SEE ALSO
 
-dig(1), nsupdate(1), named(8), named-compilezone(8)
+dig(1), nsupdate(1), perlre(1), named(8), named-compilezone(8)
 
 =cut
