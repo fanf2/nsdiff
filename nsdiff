@@ -172,17 +172,17 @@ nsdiff [B<-b> I<address>] [B<-k> I<keyfile>] [B<-y> [I<hmac>:]I<name>:I<key>]
 
 =head1 DESCRIPTION
 
-The C<nsdiff> program examines the F<old> and F<new> versions of a DNS
+The B<nsdiff> program examines the F<old> and F<new> versions of a DNS
 zone, and outputs the differences as a script for use by BIND's
-C<nsupdate> program. It ignores DNSSEC-related differences, assuming
+B<nsupdate> program. It ignores DNSSEC-related differences, assuming
 that the name server has sole control over zone keys and signatures.
 
 The input files are typically in standard DNS master file format. They
-are passed through BIND's C<named-compilezone> program to convert them
+are passed through BIND's B<named-compilezone> program to convert them
 to canonical form, so they may also be in BIND's "raw" format and may
 have F<.jnl> update journals.
 
-If the F<old> file is not specified, C<nsdiff> will use C<dig> to
+If the F<old> file is not specified, B<nsdiff> will use B<dig> to
 transfer the zone from its master server as identified in the zone's
 SOA MNAME field.
 
@@ -200,7 +200,7 @@ Abort if update does not fit in one request packet.
 
 =item B<-i> I<regex>
 
-Ignore more DNS records. By default, C<nsdiff> strips out DNSSEC RRs
+Ignore more DNS records. By default, B<nsdiff> strips out DNSSEC RRs
 before comparing zones. You can exclude irrelevant changes from the
 diff by supplying a I<regex> that matches the unwanted RRs.
 
@@ -219,11 +219,11 @@ wrap-around is not supported.
 Control verbosity.
 The B<q> flag causes queries to be printed.
 The B<r> flag causes responses to be printed.
-To make C<nsdiff> quiet, use B<-v ''>.
+To make B<nsdiff> quiet, use B<-v ''>.
 
 =back
 
-The following options are passed to C<dig> to modify its SOA and AXFR
+The following options are passed to B<dig> to modify its SOA and AXFR
 queries:
 
 =over
@@ -254,7 +254,7 @@ Errors in the command line.
 
 =item C<could not get SOA record for I<zone>>
 
-Failed to retreive the zone's SOA using C<dig>.
+Failed to retreive the zone's SOA using B<dig>.
 
 =item C<update does not fit in packet>
 
@@ -263,34 +263,34 @@ option was specified and all the changes did not fit in 64 KiB.
 
 =item C<missing SOA record>
 
-The output of C<named-compilezone> is incomplete,
+The output of B<named-compilezone> is incomplete,
 usually because the input file is erroneous.
 
 =item C<ignoring dig options when loading old zone from file>
 
-Warning emitted when the command line includes options for C<dig>
+Warning emitted when the command line includes options for B<dig>
 as well as an old zone source file.
 
 =item C<loading zone I<zone> from AXFR>
 
 =item C<loading zone I<zone> from file I<file>>
 
-Normal progress messages emitted before C<nsdiff> invokes
-C<named-compilezone>, to explain the latter's diagnostics.
+Normal progress messages emitted before B<nsdiff> invokes
+B<named-compilezone>, to explain the latter's diagnostics.
 
 =back
 
 =head1 EXAMPLES
 
-It is easiest to deploy DNSSEC if you allow C<named> to manage zone keys
+It is easiest to deploy DNSSEC if you allow B<named> to manage zone keys
 and signatures automatically, and feed in changes to zones using DNS
 update requests. However this is very different from the traditional way
 of manually maintaining zones in standard master file format. The
-C<nsdiff> program bridges the gap between the two operational styles.
+B<nsdiff> program bridges the gap between the two operational styles.
 
 To support this workflow you need BIND-9.7 or newer. You will continue
 maintaining your zone master file C<$sourcefile> as before, but it is no
-longer the same as the C<$workingfile> used by C<named>. After you make
+longer the same as the C<$workingfile> used by B<named>. After you make
 a change, instead of using C<rndc reload $zone>, run C<nsdiff $zone
 $sourcefile | nsupdate -l>.
 
@@ -311,18 +311,18 @@ and run these commands:
 
 =head1 CAVEATS
 
-Note that C<nsdiff> does not maintain the transactional semantics of
+Note that B<nsdiff> does not maintain the transactional semantics of
 native DNS update requests when the diff is large - it applies the
 changes in multiple update requests. To minimise the problems this may
-cause, C<nsdiff> ensures each domain name's changes are all in the same
+cause, B<nsdiff> ensures each domain name's changes are all in the same
 update request. There is still a small risk of clients not seeing a
 change applied atomically when that matters (e.g. altering an MX and
 creating the new target in the same transaction). You may be able to
 avoid this if you have good control over what gets changed when.
 
 Also, if something else is making changes to the zone at the time you run
-C<nsdiff> and C<nsupdate>, then some or all of the changes may be rejected
-by the server. This may happen even in simple setups if C<named> happens
+B<nsdiff> and B<nsupdate>, then some or all of the changes may be rejected
+by the server. This may happen even in simple setups if B<named> happens
 to be re-signing the zone at the time you make an update. The SOA serial
 number prerequisite checks are supposed to catch this problem, but they
 are a bit weak when the changes are split into multiple transactions. But
@@ -330,7 +330,7 @@ if this happens it should be safe to just re-run C<nsdiff | nsupdate>
 (though the warning about delicate dependencies applies even more
 strongly).
 
-The current operational trade-offs in C<nsdiff> are not necessarily the
+The current operational trade-offs in B<nsdiff> are not necessarily the
 right ones. Feedback is welcome.
 
 =head1 AUTHOR
