@@ -280,7 +280,7 @@ B<named-compilezone>, to explain the latter's diagnostics.
 
 =back
 
-=head1 EXAMPLES
+=head1 EXAMPLE - DNSSEC
 
 It is easiest to deploy DNSSEC if you allow B<named> to manage zone keys
 and signatures automatically, and feed in changes to zones using DNS
@@ -308,6 +308,19 @@ and run these commands:
 
   dnssec-keygen -f KSK $zone
   dnssec-keygen $zone
+
+=head1 EXAMPLE - dynamic reverse DNS
+
+You have a reverse zone such as C<2.0.192.in-addr.arpa> which is
+mostly managed dynamically by a DHCP server, but which also has some
+static records (for network equipment, say). You can maintain the
+static part in a master file and feed any changes into the live
+dynamic zone by telling B<nsdiff> to ignore the dynamic entries. Say
+all the static equipment has IP addresses between 192.0.2.250 and
+192.0.2.255, then you can run the command pipeline:
+
+  nsdiff -i '^(?!25\d\.)' 2.0.192.in-addr.arpa 2.0.192.static |
+    nsupdate -l
 
 =head1 CAVEATS
 
