@@ -346,6 +346,14 @@ strongly).
 The current operational trade-offs in B<nsdiff> are not necessarily the
 right ones. Feedback is welcome.
 
+=head1 BUGS
+
+When updating a name's DNS records, B<nsdiff> first deletes the old
+ones then adds the new ones. This ensures that CNAME replacements and
+TTL changes work correctly. However, replacing every record in a
+zone's apex NS RRset doesn't work, because it isn't possible to delete
+all a zone's name servers.
+
 =head1 AUTHOR
 
 =over
