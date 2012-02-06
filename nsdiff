@@ -62,6 +62,7 @@ my $domain = qr{(?:[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?[.])+};
 my $dnssec = qr{^\S+\s+\d+\s+IN\s+(NSEC|NSEC3|NSEC3PARAM|RRSIG|DNSKEY|TYPE65534)\s+};
 my $soare = qr{^$zonere\s+(\d+)\s+(IN\s+SOA\s+$domain\s+$domain)
 	       \s+(\d+)\s+(\d+\s+\d+\s+\d+\s+\d+\n)$}x;
+my $exclude = $opt{i} ? qr{$dnssec|$opt{i}} : qr{$dnssec};
 
 fail "not a domain name: $zone" unless $zone =~ m{^$domain$};
 
@@ -71,7 +72,7 @@ fail "not a domain name: $zone" unless $zone =~ m{^$domain$};
 sub cleanzone {
     my ($soa,%zone) = shift;
     fail "missing SOA record" unless defined $soa and $soa =~ $soare;
-    $zone{$_} = 1 for grep { not m{$dnssec|$opt{q}}o } @_;
+    $zone{$_} = 1 for grep { not m{$exclude} } @_;
     return ($soa,\%zone);
 }
 
@@ -350,9 +351,9 @@ right ones. Feedback is welcome.
 
 When updating a name's DNS records, B<nsdiff> first deletes the old
 ones then adds the new ones. This ensures that CNAME replacements and
-TTL changes work correctly. However, replacing every record in a
-zone's apex NS RRset doesn't work, because it isn't possible to delete
-all a zone's name servers.
+TTL changes work correctly. However, this update strategy prevents you
+from replacing every record in a zone's apex NS RRset, because it
+isn't possible to delete all a zone's name servers.
 
 =head1 AUTHOR
 
