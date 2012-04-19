@@ -8,8 +8,8 @@ use strict;
 use Getopt::Std;
 use POSIX;
 
-sub fail { die  "nsdiff: @_\n"; }
 sub wail { warn "nsdiff: @_\n"; }
+sub fail { wail @_; exit 2; }
 
 # for named-compilezone
 $ENV{PATH} .= ":/sbin:/usr/sbin:/usr/local/sbin";
@@ -26,15 +26,16 @@ options:
   -1                  Abort if update doesn't fit in one packet
   -i regex            Ignore records matching the pattern
   -S num|mode         SOA serial number or update mode
+  -q                  only output if zones differ
   -v [q][r]           verbose query and/or reply
   -b address          dig query source address
   -k keyfile          dig query TSIG key
   -y [hmac:]name:key  dig query TSIG key
 EOF
-    exit 1;
+    exit 2;
 }
 my %opt;
-usage unless getopts '01i:S:v:b:k:y:', \%opt;
+usage unless getopts '01i:S:qv:b:k:y:', \%opt;
 usage unless @ARGV == 2 || @ARGV == 3;
 
 my @digopts;
@@ -44,8 +45,10 @@ for my $o (qw{ b k y }) {
 wail "ignoring dig options when loading old zone from file"
     if @digopts && @ARGV != 2;
 
+usage if $opt{q} && $opt{v};
 usage if $opt{v} && $opt{v} !~ m{^[qr]*$};
-my $verbosity = $opt{v} || 'r';
+my $quiet = $opt{q} ? '2>/dev/null' : '';
+my $verbosity = exists $opt{v} ? $opt{v} : $quiet ? '' : 'r';
 
 my $soamode = $opt{S} || 'serial';
 my $soafun = $soamode =~ m{^[0-9]+$} ?
@@ -82,14 +85,15 @@ sub axfrzone {
     my $master = $soa[0];
     fail "could not get SOA record for $zone"
 	unless defined $master and $master =~ m{^$domain$};
-    wail "loading zone $zone via AXFR from $master";
-    return cleanzone qx{dig @digopts axfr $zone \@$master | $compilezone $zone /dev/stdin};
+    wail "loading zone $zone via AXFR from $master" unless $quiet;
+    return cleanzone qx{dig @digopts axfr $zone \@$master |
+                        $compilezone $zone /dev/stdin $quiet};
 }
 
 sub loadzone {
     my ($zone,$file) = @_;
-    wail "loading zone $zone from file $file";
-    return cleanzone qx{$compilezone -j $zone '$file'};
+    wail "loading zone $zone from file $file" unless $quiet;
+    return cleanzone qx{$compilezone -j $zone '$file' $quiet};
 }
 
 my ($soa,$old) = (@ARGV == 1)
@@ -137,6 +141,13 @@ for my $owner (keys %add) {
     emit;
 }
 
+my $status = !!@script;
+
+if ($quiet) {
+	wail "$zone has changes" if @script;
+	exit $status;
+}
+
 # Emit commands in batches that fit within the 64 KiB DNS packet limit
 # assuming textual representation is not smaller than binary encoding.
 # Use a prerequisite based on the SOA record to catch races.
@@ -158,7 +169,7 @@ while (@script) {
     print "answer\n" if $verbosity =~ m{r};
 }
 
-exit;
+exit $status;
 
 __END__
 
@@ -169,7 +180,8 @@ nsdiff - create "nsupdate" script from DNS zone file diffrences
 =head1 SYNOPSIS
 
 nsdiff [B<-b> I<address>] [B<-k> I<keyfile>] [B<-y> [I<hmac>:]I<name>:I<key>]
-       [B<-0>|B<-1>] [B<-v> [q][r]] [B<-S> I<mode>|I<num>] <I<zone>> [I<old>] <I<new>>
+       [B<-0>|B<-1>] [B<-q>|B<-v> [q][r]] [B<-i> I<regex>] [B<-S> I<mode>|I<num>]
+       <I<zone>> [I<old>] <I<new>>
 
 =head1 DESCRIPTION
 
@@ -193,7 +205,8 @@ SOA MNAME field.
 
 =item B<-0>
 
-Allow updates for one domain name to be split across multiple requests.
+Allow very large updates affecting one domain name to be split across
+multiple requests.
 
 =item B<-1>
 
@@ -215,12 +228,17 @@ serial number value. In all cases, if the current serial number is
 larger than the target value it is just incremented. Serial number
 wrap-around is not supported.
 
+=item B<-q>
+
+Quiet / quick check. Output is suppressed unless the zones differ, in
+which case a short note is printed instead of an B<nsupdate> script.
+
 =item B<-v> [q][r]
 
 Control verbosity.
 The B<q> flag causes queries to be printed.
 The B<r> flag causes responses to be printed.
-To make B<nsdiff> quiet, use B<-v ''>.
+To make B<nsdiff> quiet, use S<B<-v ''>>.
 
 =back
 
@@ -231,17 +249,22 @@ queries:
 
 =item B<-b> I<address>
 
-AXFR query source address
+Source address for B<dig> queries
 
 =item B<-k> I<keyfile>
 
-TSIG key file for AXFR query
+TSIG key file for B<dig> queries.
 
 =item B<-y> [I<hmac>:]I<name>:I<key>
 
-Literal TSIG key for AXFR query
+Literal TSIG key for B<dig> queries.
 
 =back
+
+=head1 EXIT STATUS
+
+The B<nsdiff> utility returns 0 if the zones are the same, 1 if they
+differ, and 2 if there was an error.
 
 =head1 DIAGNOSTICS
 
@@ -249,32 +272,37 @@ Literal TSIG key for AXFR query
 
 =item C<usage: ...>
 
-=item C<not a domain name: I<zone>>
+=item C<not a domain name: I<E<lt>zoneE<gt>>>
 
 Errors in the command line.
 
-=item C<could not get SOA record for I<zone>>
+=item C<could not get SOA record for I<E<lt>zoneE<gt>>>
 
 Failed to retreive the zone's SOA using B<dig>.
-
-=item C<update does not fit in packet>
-
-The changes for one domain name did not fit in 64 KiB, or the B<-1>
-option was specified and all the changes did not fit in 64 KiB.
 
 =item C<missing SOA record>
 
 The output of B<named-compilezone> is incomplete,
 usually because the input file is erroneous.
 
+=item C<I<E<lt>zoneE<gt>> has changes>
+
+Printed instead of an B<nsupdate> script when the B<-q> option is
+used.
+
+=item C<update does not fit in packet>
+
+The changes for one domain name did not fit in 64 KiB, or the B<-1>
+option was specified and all the changes did not fit in 64 KiB.
+
 =item C<ignoring dig options when loading old zone from file>
 
 Warning emitted when the command line includes options for B<dig>
 as well as an old zone source file.
 
-=item C<loading zone I<zone> from AXFR>
+=item C<loading zone I<E<lt>zoneE<gt>> from AXFR>
 
-=item C<loading zone I<zone> from file I<file>>
+=item C<loading zone I<E<lt>zoneE<gt>> from file I<file>>
 
 Normal progress messages emitted before B<nsdiff> invokes
 B<named-compilezone>, to explain the latter's diagnostics.
@@ -325,27 +353,26 @@ all the static equipment has IP addresses between 192.0.2.250 and
 
 =head1 CAVEATS
 
-Note that B<nsdiff> does not maintain the transactional semantics of
-native DNS update requests when the diff is large - it applies the
-changes in multiple update requests. To minimise the problems this may
-cause, B<nsdiff> ensures each domain name's changes are all in the same
-update request. There is still a small risk of clients not seeing a
-change applied atomically when that matters (e.g. altering an MX and
-creating the new target in the same transaction). You may be able to
-avoid this if you have good control over what gets changed when.
+By default B<nsdiff> does not maintain the transactional semantics of
+native DNS update requests when the diff is big: it applies large changes
+in multiple update requests. To minimise the problems this may cause,
+B<nsdiff> ensures each domain name's changes are all in the same update
+request. There is still a small risk of clients not seeing a change applied
+atomically when that matters (e.g. altering an MX and creating the new
+target in the same transaction). You can avoid the risk by using the B<-1>
+option to prevent multi-packet updates, or by being careful about changes
+that depend on multiple domain names.
 
-Also, if something else is making changes to the zone at the time you run
-B<nsdiff> and B<nsupdate>, then some or all of the changes may be rejected
-by the server. This may happen even in simple setups if B<named> happens
-to be re-signing the zone at the time you make an update. The SOA serial
-number prerequisite checks are supposed to catch this problem, but they
-are a bit weak when the changes are split into multiple transactions. But
-if this happens it should be safe to just re-run C<nsdiff | nsupdate>
-(though the warning about delicate dependencies applies even more
-strongly).
+The update requests emitted by B<nsdiff> include SOA serial number
+prerequisite checks to ensure that the zone has not changed while it is
+running. This can happen even in simple setups if B<named> happens to be
+re-signing the zone at the time you make an update. Unfortunately the DNS
+update protocol does not allow for good error reporting when a prerequisite
+check fails. You can use the following script to cope with this problem:
 
-The current operational trade-offs in B<nsdiff> are not necessarily the
-right ones. Feedback is welcome.
+  while ! nsdiff -q $zone $source
+  do nsdiff $zone $source | nsupdate -l
+  done
 
 =head1 BUGS
 
@@ -371,8 +398,8 @@ isn't possible to delete all a zone's name servers.
 
 =head1 ACKNOWLEDGMENTS
 
-Thanks to Terry Burton at the University of Leicester and Piete Brooks
-at the University of Cambridge Computer Laboratory for providing
+Thanks to Mike Bristow, Piete Brooks (University of Cambridge Computer
+Laboratory), and Terry Burton (University of Leicester) for providing
 useful feedback.
 
 =head1 SEE ALSO
