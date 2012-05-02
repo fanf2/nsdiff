@@ -141,10 +141,9 @@ for my $owner (keys %add) {
     emit;
 }
 
-my $status = !!@script;
-
+my $status = @script ? 1 : 0;
 if ($quiet) {
-	wail "$zone has changes" if @script;
+	wail "$zone has changes" if $status;
 	exit $status;
 }
 
