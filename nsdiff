@@ -81,12 +81,12 @@ sub cleanzone {
 
 sub axfrzone {
     my $zone = shift;
-    my @soa = split ' ', qx{dig @digopts +short soa $zone};
+    my @soa = split ' ', qx{dig +short soa $zone};
     my $master = $soa[0];
     fail "could not get SOA record for $zone"
 	unless defined $master and $master =~ m{^$domain$};
     wail "loading zone $zone via AXFR from $master" unless $quiet;
-    return cleanzone qx{dig @digopts axfr $zone \@$master |
+    return cleanzone qx{dig @digopts +noadditional axfr $zone \@$master |
                         $compilezone $zone /dev/stdin $quiet};
 }
 
