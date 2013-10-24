@@ -24,6 +24,7 @@ usage: nsdiff [options] <zone> [old] <new>
 options:
   -0                  Allow a domain's updates to span packets
   -1                  Abort if update doesn't fit in one packet
+  -D                  Do not ignore DNSKEY records
   -i regex            Ignore records matching the pattern
   -S num|mode         SOA serial number or update mode
   -q                  only output if zones differ
@@ -50,6 +51,9 @@ usage if $opt{v} && $opt{v} !~ m{^[qr]*$};
 my $quiet = $opt{q} ? '2>/dev/null' : '';
 my $verbosity = exists $opt{v} ? $opt{v} : $quiet ? '' : 'r';
 
+my $secRRtypes = qr{NSEC|NSEC3|NSEC3PARAM|RRSIG|TYPE65534};
+$secRRtypes = qr{$secRRtypes|DNSKEY} unless $opt{D};
+
 my $soamode = $opt{S} || 'serial';
 my $soafun = $soamode =~ m{^[0-9]+$} ?
              sub { return $soamode } : {
@@ -62,7 +66,7 @@ my $soamin = $soafun->();
 my $zone = shift; $zone =~ s{[.]?$}{.};
 my $zonere = quotemeta $zone;
 my $domain = qr{(?:[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?[.])+|[.]};
-my $dnssec = qr{^\S+\s+\d+\s+IN\s+(NSEC|NSEC3|NSEC3PARAM|RRSIG|DNSKEY|TYPE65534)\s+};
+my $dnssec = qr{^\S+\s+\d+\s+IN\s+($secRRtypes)\s+};
 my $soare = qr{^$zonere\s+(\d+)\s+(IN\s+SOA\s+$domain\s+$domain)
 	       \s+(\d+)\s+(\d+\s+\d+\s+\d+\s+\d+\n)$}x;
 my $exclude = $opt{i} ? qr{$dnssec|$opt{i}} : qr{$dnssec};
@@ -179,7 +183,7 @@ nsdiff - create "nsupdate" script from DNS zone file diffrences
 =head1 SYNOPSIS
 
 nsdiff [B<-b> I<address>] [B<-k> I<keyfile>] [B<-y> [I<hmac>:]I<name>:I<key>]
-       [B<-0>|B<-1>] [B<-q>|B<-v> [q][r]] [B<-i> I<regex>] [B<-S> I<mode>|I<num>]
+       [B<-0>|B<-1>] [B<-q>|B<-v> [q][r]] [B<-D>] [B<-i> I<regex>] [B<-S> I<mode>|I<num>]
        <I<zone>> [I<old>] <I<new>>
 
 =head1 DESCRIPTION
@@ -210,6 +214,16 @@ multiple requests.
 =item B<-1>
 
 Abort if update does not fit in one request packet.
+
+=item B<-D>
+
+Do not ignore DNSKEY records. It is sometimes necessary to take manual
+control over a zone's DNSKEY RRset, for instance to include a foreign
+DNSKEY records during migration to or from another hosting provider.
+If you use this option your un-signed zone file should include the
+complete DNSKEY RRset; if not, nsdiff will try to delete the DNSKEY
+records. Normally B<named> will reject the update, unless the zone is
+configured with the I<dnssec-secure-to-insecure> option.
 
 =item B<-i> I<regex>
 
