@@ -36,7 +36,7 @@ EOF
     exit 2;
 }
 my %opt;
-usage unless getopts '01i:S:qv:b:k:y:', \%opt;
+usage unless getopts '01Di:S:qv:b:k:y:', \%opt;
 usage unless @ARGV == 2 || @ARGV == 3;
 
 my @digopts;
