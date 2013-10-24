@@ -61,7 +61,7 @@ my $soamin = $soafun->();
 
 my $zone = shift; $zone =~ s{[.]?$}{.};
 my $zonere = quotemeta $zone;
-my $domain = qr{(?:[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?[.])+};
+my $domain = qr{(?:[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?[.])+|[.]};
 my $dnssec = qr{^\S+\s+\d+\s+IN\s+(NSEC|NSEC3|NSEC3PARAM|RRSIG|DNSKEY|TYPE65534)\s+};
 my $soare = qr{^$zonere\s+(\d+)\s+(IN\s+SOA\s+$domain\s+$domain)
 	       \s+(\d+)\s+(\d+\s+\d+\s+\d+\s+\d+\n)$}x;
@@ -75,7 +75,7 @@ fail "not a domain name: $zone" unless $zone =~ m{^$domain$};
 sub cleanzone {
     my ($soa,%zone) = shift;
     fail "missing SOA record" unless defined $soa and $soa =~ $soare;
-    $zone{$_} = 1 for grep { not m{$exclude} } @_;
+    $zone{$_} = 1 for grep { not m{$exclude}o } @_;
     return ($soa,\%zone);
 }
 
