@@ -88,7 +88,7 @@ sub axfrzone {
     my @soa = split ' ', qx{dig +short soa $zone};
     my $master = $soa[0];
     fail "could not get SOA record for $zone"
-	unless defined $master and $master =~ m{^$domain$};
+        unless defined $master and $master =~ m{^$domain$};
     wail "loading zone $zone via AXFR from $master" unless $quiet;
     return cleanzone qx{dig @digopts +noadditional axfr $zone \@$master |
                         $compilezone $zone /dev/stdin $quiet};
@@ -147,8 +147,8 @@ for my $owner (keys %add) {
 
 my $status = @script ? 1 : 0;
 if ($quiet) {
-	wail "$zone has changes" if $status;
-	exit $status;
+    wail "$zone has changes" if $status;
+    exit $status;
 }
 
 # Emit commands in batches that fit within the 64 KiB DNS packet limit
