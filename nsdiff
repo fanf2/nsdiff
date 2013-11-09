@@ -17,34 +17,42 @@ my $compilezone = 'named-compilezone -i local -k warn -n warn -o -';
 
 sub usage {
     print STDERR <<EOF;
-usage: nsdiff [options] <zone> [old] <new>
+usage: nsdiff [options] <zone> [old] [new]
   Generate an `nsupdate` script that changes a zone from the
   "old" version into the "new" version, ignoring DNSSEC records.
-  If the "old" file is omitted, `nsdiff` will AXFR the zone.
+  If the "old" file is omitted and there is no -s option, `nsdiff`
+  will AXFR the zone from the server in the zone's SOA MNAME field.
 options:
   -0                  Allow a domain's updates to span packets
   -1                  Abort if update doesn't fit in one packet
   -D                  Do not ignore DNSKEY records
   -i regex            Ignore records matching the pattern
+  -m server           from where to AXFR new version of the zone
+  -s server           from where to AXFR old version of the zone
   -S num|mode         SOA serial number or update mode
   -q                  only output if zones differ
+  -u server           where to send update
   -v [q][r]           verbose query and/or reply
-  -b address          dig query source address
-  -k keyfile          dig query TSIG key
-  -y [hmac:]name:key  dig query TSIG key
+  -b address          AXFR query source address
+  -k keyfile          AXFR query TSIG key
+  -y [hmac:]name:key  AXFR query TSIG key
 EOF
     exit 2;
 }
 my %opt;
-usage unless getopts '01Di:S:qv:b:k:y:', \%opt;
-usage unless @ARGV == 2 || @ARGV == 3;
+usage unless getopts '01Di:m:s:S:qu:v:b:k:y:', \%opt;
+usage if @ARGV < 1 || @ARGV > 3;
 
 my @digopts;
 for my $o (qw{ b k y }) {
     push @digopts, "-$o $opt{$o}" if exists $opt{$o};
 }
-wail "ignoring dig options when loading old zone from file"
-    if @digopts && @ARGV != 2;
+wail "ignoring dig options when loading zones from files"
+    if @digopts && @ARGV == 3;
+wail "ignoring -m option when loading new zone from file"
+    if $opt{m} && @ARGV > 1;
+fail "need -m option when there are no input files"
+    unless $opt{m} || @ARGV > 1;
 
 usage if $opt{q} && $opt{v};
 usage if $opt{v} && $opt{v} !~ m{^[qr]*$};
@@ -85,10 +93,7 @@ sub cleanzone {
 
 sub axfrzone {
     my $zone = shift;
-    my @soa = split ' ', qx{dig +short soa $zone};
-    my $master = $soa[0];
-    fail "could not get SOA record for $zone"
-        unless defined $master and $master =~ m{^$domain$};
+    my $master = shift;
     wail "loading zone $zone via AXFR from $master" unless $quiet;
     return cleanzone qx{dig @digopts +noadditional axfr $zone \@$master |
                         $compilezone $zone /dev/stdin $quiet};
@@ -100,10 +105,21 @@ sub loadzone {
     return cleanzone qx{$compilezone -j $zone '$file' $quiet};
 }
 
-my ($soa,$old) = (@ARGV == 1)
-                  ? axfrzone $zone
+sub mname {
+    my $zone = shift;
+    my @soa = split ' ', qx{dig +short soa $zone};
+    my $master = $soa[0];
+    fail "could not get SOA record for $zone"
+        unless defined $master and $master =~ m{^$domain$};
+    return $master;
+}
+
+my ($soa,$old) = (@ARGV < 2)
+                  ? axfrzone $zone, $opt{s} || mname $zone
                   : loadzone $zone, shift;
-my ($newsoa,$new) = loadzone $zone, shift;
+my ($newsoa,$new) = (@ARGV < 1)
+                  ? axfrzone $zone, $opt{m}
+                  : loadzone $zone, shift;
 
 # Remove unchanged RRs, and save each name's deletions and additions.
 
@@ -161,6 +177,7 @@ while (@script) {
     $length += length $script[$i++] while $length < $maxlen and $i < @script;
     my @batch = splice @script, 0, $length < $maxlen ? $i : $i - 1;
     fail "update does not fit in packet" if @batch == 0 or $opt{1} and @script != 0;
+    print "server $opt{u}\n" if $opt{u};
     $soa =~ $soare;
     print "prereq yxrrset $zone $2 $3 $4";
     my $serial = $3 >= $soamin ? $3 + 1 : $soamin;
@@ -184,7 +201,7 @@ nsdiff - create "nsupdate" script from DNS zone file diffrences
 
 nsdiff [B<-b> I<address>] [B<-k> I<keyfile>] [B<-y> [I<hmac>:]I<name>:I<key>]
        [B<-0>|B<-1>] [B<-q>|B<-v> [q][r]] [B<-D>] [B<-i> I<regex>] [B<-S> I<mode>|I<num>]
-       <I<zone>> [I<old>] <I<new>>
+       [B<-s> I<server>] [B<-m> I<server>] [B<-u> I<server>] <I<zone>> [I<old>] [I<new>]
 
 =head1 DESCRIPTION
 
@@ -198,9 +215,11 @@ are passed through BIND's B<named-compilezone> program to convert them
 to canonical form, so they may also be in BIND's "raw" format and may
 have F<.jnl> update journals.
 
-If the F<old> file is not specified, B<nsdiff> will use B<dig> to
-transfer the zone from its master server as identified in the zone's
-SOA MNAME field.
+If the F<old> file is not specified, B<nsdiff> will use B<dig> to transfer
+the zone from the server given by the B<-s> option, or if the B<-s> option
+is missing it will get the server from the zone's SOA MNAME field. If both
+F<old> and F<new> files are not specified, B<nsdiff> will transfer the new
+version of the zone from the server given by the B<-m> option.
 
 =head1 OPTIONS
 
@@ -231,6 +250,15 @@ Ignore more DNS records. By default, B<nsdiff> strips out DNSSEC RRs
 before comparing zones. You can exclude irrelevant changes from the
 diff by supplying a I<regex> that matches the unwanted RRs.
 
+=item B<-m> I<server>
+
+Transfer the new version of the zone from the server given in this option,
+for example, a back-end hidden master server.
+
+=item B<-s> I<server>
+
+Transfer the old version of the zone from the server given in this option.
+
 =item B<-S> B<date>|B<serial>|B<unix>|I<num>
 
 Choose the SOA serial number update mode: the default I<serial> just
@@ -245,6 +273,10 @@ wrap-around is not supported.
 
 Quiet / quick check. Output is suppressed unless the zones differ, in
 which case a short note is printed instead of an B<nsupdate> script.
+
+=item B<-u> I<server>
+
+Tell B<nsupdate> to send the update message to this server.
 
 =item B<-v> [q][r]
 
@@ -308,12 +340,19 @@ used.
 The changes for one domain name did not fit in 64 KiB, or the B<-1>
 option was specified and all the changes did not fit in 64 KiB.
 
-=item C<ignoring dig options when loading old zone from file>
+=item C<ignoring dig options when loading zones from files>
 
 Warning emitted when the command line includes options for B<dig>
-as well as an old zone source file.
+as well as zone source files.
 
-=item C<loading zone I<E<lt>zoneE<gt>> from AXFR>
+=item C<ignoring -m option when loading new zone from file>
+
+=item C<need -m option when there are no input files>
+
+The B<-m> I<master> option is required when there are no file arguments,
+and ignored otherwise.
+
+=item C<loading zone I<E<lt>zoneE<gt>> via AXFR from I<server>>
 
 =item C<loading zone I<E<lt>zoneE<gt>> from file I<file>>
 
@@ -350,6 +389,21 @@ and run these commands:
 
   dnssec-keygen -f KSK $zone
   dnssec-keygen $zone
+
+=head1 EXAMPLE - bump-in-the-wire signing
+
+A common arrangement for DNSSEC is to have a master server that is
+oblivious to DNSSEC, a signing server which transfers the zone from the
+master and adds the DNSSEC records, and a number of slave servers which
+transfer the zone from the signer and which are the public authoritative
+servers.
+
+You can implement this with B<nsdiff>, which handles the transfer of the
+zone from the master to the signer. No modifications to the master are
+necessary. You set up the signer as in the previous section. To transfer
+changes from the master to the signer, run the following on the signer:
+
+  nsdiff -m $master -s $signer $zone | nsupdate -l
 
 =head1 EXAMPLE - dynamic reverse DNS
 
