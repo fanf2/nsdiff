@@ -31,7 +31,7 @@ options:
   -s server           from where to AXFR old version of the zone
   -S num|mode         SOA serial number or update mode
   -q                  only output if zones differ
-  -u server           where to send update
+  -u                  tell nsupdate to send to -s server
   -v [q][r]           verbose query and/or reply
   -b address          AXFR query source address
   -k keyfile          AXFR query TSIG key
@@ -40,7 +40,7 @@ EOF
     exit 2;
 }
 my %opt;
-usage unless getopts '01Di:m:s:S:qu:v:b:k:y:', \%opt;
+usage unless getopts '01Di:m:s:S:quv:b:k:y:', \%opt;
 usage if @ARGV < 1 || @ARGV > 3;
 
 my @digopts;
@@ -53,6 +53,7 @@ wail "ignoring -m option when loading new zone from file"
     if $opt{m} && @ARGV > 1;
 fail "need -m option when there are no input files"
     unless $opt{m} || @ARGV > 1;
+usage if $opt{u} && !$opt{s};
 
 usage if $opt{q} && $opt{v};
 usage if $opt{v} && $opt{v} !~ m{^[qr]*$};
@@ -177,7 +178,7 @@ while (@script) {
     $length += length $script[$i++] while $length < $maxlen and $i < @script;
     my @batch = splice @script, 0, $length < $maxlen ? $i : $i - 1;
     fail "update does not fit in packet" if @batch == 0 or $opt{1} and @script != 0;
-    print "server $opt{u}\n" if $opt{u};
+    print "server $opt{s}\n" if $opt{u};
     $soa =~ $soare;
     print "prereq yxrrset $zone $2 $3 $4";
     my $serial = $3 >= $soamin ? $3 + 1 : $soamin;
@@ -201,7 +202,7 @@ nsdiff - create "nsupdate" script from DNS zone file diffrences
 
 nsdiff [B<-b> I<address>] [B<-k> I<keyfile>] [B<-y> [I<hmac>:]I<name>:I<key>]
        [B<-0>|B<-1>] [B<-q>|B<-v> [q][r]] [B<-D>] [B<-i> I<regex>] [B<-S> I<mode>|I<num>]
-       [B<-s> I<server>] [B<-m> I<server>] [B<-u> I<server>] <I<zone>> [I<old>] [I<new>]
+       [B<-u>] [B<-s> I<server>] [B<-m> I<server>] <I<zone>> [I<old>] [I<new>]
 
 =head1 DESCRIPTION
 
@@ -274,9 +275,10 @@ wrap-around is not supported.
 Quiet / quick check. Output is suppressed unless the zones differ, in
 which case a short note is printed instead of an B<nsupdate> script.
 
-=item B<-u> I<server>
+=item B<-u>
 
-Tell B<nsupdate> to send the update message to this server.
+Tell B<nsupdate> to send the update message to the server specified in the
+B<-s> option.
 
 =item B<-v> [q][r]
 
