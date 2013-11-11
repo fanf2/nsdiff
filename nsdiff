@@ -23,10 +23,11 @@ usage: nsdiff [options] <zone> [old] [new]
   If the "old" file is omitted and there is no -s option, `nsdiff`
   will AXFR the zone from the server in the zone's SOA MNAME field.
 options:
-  -0                  Allow a domain's updates to span packets
-  -1                  Abort if update doesn't fit in one packet
-  -D                  Do not ignore DNSKEY records
-  -i regex            Ignore records matching the pattern
+  -0                  allow a domain's updates to span packets
+  -1                  abort if update doesn't fit in one packet
+  -D                  do not ignore DNSKEY records
+  -h                  display full documentation
+  -i regex            ignore records matching the pattern
   -m server           from where to AXFR new version of the zone
   -s server           from where to AXFR old version of the zone
   -S num|mode         SOA serial number or update mode
@@ -40,7 +41,8 @@ EOF
     exit 2;
 }
 my %opt;
-usage unless getopts '01Di:m:s:S:quv:b:k:y:', \%opt;
+usage unless getopts '01Dhi:m:s:S:quv:b:k:y:', \%opt;
+exec "perldoc -F $0" if $opt{h};
 usage if @ARGV < 1 || @ARGV > 3;
 
 my @digopts;
@@ -200,7 +202,7 @@ nsdiff - create "nsupdate" script from DNS zone file diffrences
 
 =head1 SYNOPSIS
 
-nsdiff [B<-b> I<address>] [B<-k> I<keyfile>] [B<-y> [I<hmac>:]I<name>:I<key>]
+nsdiff [B<-h>] [B<-b> I<address>] [B<-k> I<keyfile>] [B<-y> [I<hmac>:]I<name>:I<key>]
        [B<-0>|B<-1>] [B<-q>|B<-v> [q][r]] [B<-D>] [B<-i> I<regex>] [B<-S> I<mode>|I<num>]
        [B<-u>] [B<-s> I<server>] [B<-m> I<server>] <I<zone>> [I<old>] [I<new>]
 
@@ -244,6 +246,10 @@ If you use this option your un-signed zone file should include the
 complete DNSKEY RRset; if not, nsdiff will try to delete the DNSKEY
 records. Normally B<named> will reject the update, unless the zone is
 configured with the I<dnssec-secure-to-insecure> option.
+
+=item B<-h>
+
+Display this documentation.
 
 =item B<-i> I<regex>
 
