@@ -331,7 +331,8 @@ Errors in the command line.
 
 =item C<could not get SOA record for I<E<lt>zoneE<gt>>>
 
-Failed to retreive the zone's SOA using B<dig>.
+Failed to retreive the zone's SOA using B<dig> when trying to obtain
+the server MNAME from which to AXFR the zone.
 
 =item C<missing SOA record>
 
