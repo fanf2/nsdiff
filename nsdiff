@@ -65,14 +65,14 @@ my $verbosity = exists $opt{v} ? $opt{v} : $quiet ? '' : 'r';
 my $secRRtypes = qr{NSEC|NSEC3|NSEC3PARAM|RRSIG|TYPE65534};
 $secRRtypes = qr{$secRRtypes|DNSKEY} unless $opt{D};
 
-my $soamode = $opt{S} || 'serial';
+my $soamode = $opt{S} || 'master';
 my $soafun = $soamode =~ m{^[0-9]+$} ?
              sub { return $soamode } : {
    serial => sub { return 0 },
+   master => sub { return $_[0] },
      unix => sub { return time },
      date => sub { return strftime "%Y%m%d00", gmtime },
 }->{$soamode} or usage;
-my $soamin = $soafun->();
 
 my $zone = shift; $zone =~ s{[.]?$}{.};
 my $zonere = quotemeta $zone;
@@ -123,6 +123,10 @@ my ($soa,$old) = (@ARGV < 2)
 my ($newsoa,$new) = (@ARGV < 1)
                   ? axfrzone $zone, $opt{m}
                   : loadzone $zone, shift;
+
+# The serial number in the update might depend on the new SOA serial number.
+$newsoa =~ $soare;
+my $soamin = $soafun->($3);
 
 # Remove unchanged RRs, and save each name's deletions and additions.
 
@@ -266,15 +270,16 @@ for example, a back-end hidden master server.
 
 Transfer the old version of the zone from the server given in this option.
 
-=item B<-S> B<date>|B<serial>|B<unix>|I<num>
+=item B<-S> B<date>|B<master>|B<serial>|B<unix>|I<num>
 
-Choose the SOA serial number update mode: the default I<serial> just
-increments the serial number; I<date> uses a number of the form
-YYYYMMDDnn and allows for up to 100 updates per day; I<unix> uses the
-UNIX "seconds since the epoch" value. You can also specify an explicit
-serial number value. In all cases, if the current serial number is
-larger than the target value it is just incremented. Serial number
-wrap-around is not supported.
+Choose the SOA serial number update mode: the default I<master> takes
+the serial number from the I<new> input zone; I<date> uses a number of
+the form YYYYMMDDnn and allows for up to 100 updates per day;
+I<serial> just increments the serial number in the I<old> input zone;
+I<unix> uses the UNIX "seconds since the epoch" value. You can also
+specify an explicit serial number value. In all cases, if the I<old>
+input zone serial number is larger than the target value it is just
+incremented. Serial number wrap-around is not supported.
 
 =item B<-q>
 
@@ -455,8 +460,8 @@ check fails. You can use the following script to cope with this problem:
 When updating a name's DNS records, B<nsdiff> first deletes the old
 ones then adds the new ones. This ensures that CNAME replacements and
 TTL changes work correctly. However, this update strategy prevents you
-from replacing every record in a zone's apex NS RRset, because it
-isn't possible to delete all a zone's name servers.
+from replacing every record in a zone's apex NS RRset in one update,
+because it isn't possible to delete all a zone's name servers.
 
 =head1 AUTHOR
 
