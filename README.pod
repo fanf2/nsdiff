@@ -1,0 +1,82 @@
+=head1 nsdiff
+
+=head2 create an "nsupdate" script from DNS zone file diffrences
+
+The B<nsdiff> program examines the old and new versions of a DNS zone,
+and outputs the differences as a script for use by BIND's B<nsupdate>
+program. It provides a bridge between static zone files and dynamic
+updates.
+
+If you use BIND 9.7 or 9.8, you can use B<nsdiff> as an alternative
+to the DNSSEC C<inline-signing> feature which appeared in BIND 9.9.
+The server updates the DNSSEC records dynamically, but you can
+continue to manage the unsigned static zone file as before and use
+C<`nsdiff | nsupdate`> to push changes to the server.
+
+There are other situations where you have a zone which is partly
+dynamic and partly static, for example, a reverse DNS zone mostly
+updated by a DHCP server, which also has a few static entries. You can
+use B<nsdiff> to update the static part of the zone.
+
+=head2 Downloads
+
+=over
+
+=item Documentation
+
+Read the L<nsdiff manual|nsdiff>.
+
+=item Code
+
+Download the bare perl source: L<http://dotat.at/prog/nsdiff/nsdiff>
+
+Download the full source archives:
+
+=over
+
+=item
+
+L<http://dotat.at/prog/nsdiff/nsdiff-1.51.tar.xz>
+
+=item
+
+L<http://dotat.at/prog/nsdiff/nsdiff-1.51.tar.gz>
+
+=item
+
+L<http://dotat.at/prog/nsdiff/nsdiff-1.51.zip>
+
+=back
+
+=item Source repositories
+
+You can clone or browse the repository from:
+
+=over
+
+=item
+
+L<git://dotat.at/nsdiff.git>
+
+=item
+
+L<http://dotat.at/cgi/git/nsdiff.git>
+
+=item
+
+L<https://github.com/fanf2/nsdiff.git>
+
+=item
+
+L<https://git.csx.cam.ac.uk/x/ucs/ipreg/nsdiff.git>
+
+=back
+
+=back
+
+=head2 Feedback
+
+Please send bug reports or patches to me at <dot@dotat.at>.
+
+You may do anything with nsdiff. It has no warranty.
+L<http://creativecommons.org/publicdomain/zero/1.0/>
