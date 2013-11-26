@@ -17,9 +17,11 @@ nsdiff.txt: nsdiff
 
 nsdiff.html: nsdiff
 	pod2html nsdiff | sed -f fixhtml.sed >nsdiff.html
+	rm pod2htm?.tmp
 
 README.txt: README.pod
 	pod2text README.pod >README.txt
 
 README.html: README.pod
 	pod2html README.pod | sed -f fixhtml.sed >README.html
+	rm pod2htm?.tmp
