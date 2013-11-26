@@ -24,6 +24,8 @@ use B<nsdiff> to update the static part of the zone.
 
 =item Documentation
 
+The nsdiff homepage is L<http://dotat.at/prog/nsdiff/>
+
 Read the nsdiff manual: L<http://dotat.at/prog/nsdiff/nsdiff.html>
 
 =item Code

@@ -44,3 +44,12 @@ README.html: README.pod
 
 release: ${DOCS}
 	./release.sh ${DOCS}
+
+upload:
+	git push github master
+	git push dotat master
+	git push csx master
+	ln -s README.html index.html
+	scp index.html README.html nsdiff.html nsdiff \
+		*.tar.xz *.tar.gz *.zip \
+		chiark:public-html/prog/nsdiff/
