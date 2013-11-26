@@ -13,6 +13,21 @@ sub fail { wail @_; exit 2; }
 $ENV{PATH} .= ":/sbin:/usr/sbin:/usr/local/sbin";
 my $compilezone = 'named-compilezone -i local -k warn -n warn -o -';
 
+sub version {
+    while (<DATA>) {
+	last if m{^=head1 VERSION};
+    }
+    while (<DATA>) {
+	last if m{^=head1 };
+	s{=[a-z]+\s*}{};
+	s{Z<>}{\n};
+	s{[A-Z]<}{<};
+	next if m{^$};
+	print;
+    }
+    exit;
+}
+
 sub usage {
     print STDERR <<EOF;
 usage: nsdiff [options] <zone> [old] [new]
@@ -21,10 +36,11 @@ usage: nsdiff [options] <zone> [old] [new]
   If the "old" file is omitted and there is no -s option, `nsdiff`
   will AXFR the zone from the server in the zone's SOA MNAME field.
 options:
+  -h                  display full documentation
+  -V                  display version information
   -0                  allow a domain's updates to span packets
   -1                  abort if update doesn't fit in one packet
   -D                  do not ignore DNSKEY records
-  -h                  display full documentation
   -i regex            ignore records matching the pattern
   -m server           from where to AXFR new version of the zone
   -s server           from where to AXFR old version of the zone
@@ -39,7 +55,8 @@ EOF
     exit 2;
 }
 my %opt;
-usage unless getopts '01Dhi:m:s:S:quv:b:k:y:', \%opt;
+usage unless getopts 'hV01Di:m:s:S:quv:b:k:y:', \%opt;
+version if $opt{V};
 exec "perldoc -F $0" if $opt{h};
 usage if @ARGV < 1 || @ARGV > 3;
 
@@ -230,6 +247,14 @@ version of the zone from the server given by the B<-m> option.
 
 =over
 
+=item B<-h>
+
+Display this documentation.
+
+=item B<-V>
+
+Display version information.
+
 =item B<-0>
 
 Allow very large updates affecting one domain name to be split across
@@ -248,10 +273,6 @@ If you use this option your un-signed zone file should include the
 complete DNSKEY RRset; if not, nsdiff will try to delete the DNSKEY
 records. Normally B<named> will reject the update, unless the zone is
 configured with the I<dnssec-secure-to-insecure> option.
-
-=item B<-h>
-
-Display this documentation.
 
 =item B<-i> I<regex>
 
@@ -461,7 +482,9 @@ TTL changes work correctly. However, this update strategy prevents you
 from replacing every record in a zone's apex NS RRset in one update,
 because it isn't possible to delete all a zone's name servers.
 
-=head1 AUTHOR
+=head1 VERSION
+
+This is nsdiff version 1.51 L<http://dotat.at/prog/nsdiff/>Z<>
 
 =over
 
