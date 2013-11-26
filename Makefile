@@ -1,3 +1,13 @@
+# Makefile for nsdiff
+
+prefix =	${HOME}
+bindir =	${prefix}/bin
+mandir =	${prefix}/share/man
+man1dir=	${mandir}/man1
+
+bindest=	${DESTDIR}${bindir}
+man1dest=	${DESTDIR}${man1dir}
+
 DOCS=	nsdiff.1	\
 	nsdiff.txt	\
 	nsdiff.html	\
@@ -5,6 +15,12 @@ DOCS=	nsdiff.1	\
 	README.html
 
 all: ${DOCS}
+
+install: all
+	install -m 755 -d ${bindest}
+	install -m 755 nsdiff ${bindest}/
+	install -m 755 -d ${man1dest}
+	install -m 644 nsdiff.1 ${man1dest}/
 
 clean:
 	rm -f ${DOCS}
@@ -25,3 +41,6 @@ README.txt: README.pod
 README.html: README.pod
 	pod2html README.pod | sed -f fixhtml.sed >README.html
 	rm pod2htm?.tmp
+
+release: ${DOCS}
+	./release.sh ${DOCS}
