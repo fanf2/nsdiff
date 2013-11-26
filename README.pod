@@ -18,6 +18,12 @@ dynamic and partly static, for example, a reverse DNS zone mostly
 updated by a DHCP server, which also has a few static entries. You can
 use B<nsdiff> to update the static part of the zone.
 
+=head2 Dependencies
+
+To run nsdiff you need perl-5.10 or newer, and BIND version 9.7 or
+newer, specifically the B<dig>, B<named-compilezone>, and B<nsupdate>
+utilities.
+
 =head2 Downloads
 
 =over
