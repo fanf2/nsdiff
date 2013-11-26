@@ -1,6 +1,4 @@
 #!/usr/bin/perl
-#
-# $Cambridge$
 
 use warnings;
 use strict;
