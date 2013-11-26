@@ -53,4 +53,5 @@ upload:
 	scp index.html README.html nsdiff.html nsdiff \
 		*.tar.xz *.tar.gz *.zip \
 		chiark:public-html/prog/nsdiff/
+	cp nsdiff /home/uxsup/fanf2/public_html/hermes/conf/bind/bin/
 	rm -f index.html
