@@ -49,7 +49,8 @@ upload:
 	git push github master
 	git push dotat master
 	git push csx master
-	ln -s README.html index.html
+	ln -sf README.html index.html
 	scp index.html README.html nsdiff.html nsdiff \
 		*.tar.xz *.tar.gz *.zip \
 		chiark:public-html/prog/nsdiff/
+	rm -f index.html
