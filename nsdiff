@@ -14,16 +14,11 @@ $ENV{PATH} .= ":/sbin:/usr/sbin:/usr/local/sbin";
 my $compilezone = 'named-compilezone -i local -k warn -n warn -o -';
 
 sub version {
+    my $p;
     while (<DATA>) {
-	last if m{^=head1 VERSION};
-    }
-    while (<DATA>) {
-	last if m{^=head1 };
-	s{=[a-z]+\s*}{};
-	s{Z<>}{\n};
-	s{[A-Z]<}{<};
-	next if m{^$};
-	print;
+	$p = 0 if m{^=head1 };
+	print if $p;
+	$p = 1 if m{^=head1 VERSION};
     }
     exit;
 }
@@ -484,19 +479,12 @@ because it isn't possible to delete all a zone's name servers.
 
 =head1 VERSION
 
-This is nsdiff version 1.51 L<http://dotat.at/prog/nsdiff/>Z<>
+  This is nsdiff version 1.51 <http://dotat.at/prog/nsdiff/>
 
-=over
-
-=item Written by Tony Finch <fanf2@cam.ac.uk> <dot@dotat.at>
-
-=item at the University of Cambridge Computing Service.
-
-=item You may do anything with this. It has no warranty.
-
-=item L<http://creativecommons.org/publicdomain/zero/1.0/>
-
-=back
+  Written by Tony Finch <fanf2@cam.ac.uk> <dot@dotat.at>
+  at the University of Cambridge Computing Service.
+  You may do anything with this. It has no warranty.
+  <http://creativecommons.org/publicdomain/zero/1.0/>
 
 =head1 ACKNOWLEDGMENTS
 
