@@ -36,6 +36,7 @@ options:
   -0                  allow a domain's updates to span packets
   -1                  abort if update doesn't fit in one packet
   -D                  do not ignore DNSKEY records
+  -d                  ignore DS records
   -i regex            ignore records matching the pattern
   -m server           from where to AXFR new version of the zone
   -s server           from where to AXFR old version of the zone
@@ -50,7 +51,7 @@ EOF
     exit 2;
 }
 my %opt;
-usage unless getopts 'hV01Di:m:s:S:quv:b:k:y:', \%opt;
+usage unless getopts 'hV01Ddi:m:s:S:quv:b:k:y:', \%opt;
 version if $opt{V};
 exec "perldoc -F $0" if $opt{h};
 usage if @ARGV < 1 || @ARGV > 3;
@@ -74,6 +75,7 @@ my $verbosity = exists $opt{v} ? $opt{v} : $quiet ? '' : 'r';
 
 my $secRRtypes = qr{NSEC|NSEC3|NSEC3PARAM|RRSIG|TYPE65534};
 $secRRtypes = qr{$secRRtypes|DNSKEY} unless $opt{D};
+$secRRtypes = qr{$secRRtypes|DS} if $opt{d};
 
 my $soamode = $opt{S} || 'master';
 my $soafun = $soamode =~ m{^[0-9]+$} ?
@@ -269,11 +271,18 @@ complete DNSKEY RRset; if not, nsdiff will try to delete the DNSKEY
 records. Normally B<named> will reject the update, unless the zone is
 configured with the I<dnssec-secure-to-insecure> option.
 
+=item B<-d>
+
+Ignore DS records. This option is useful if you are managing secure
+delegations on the signing server (via nsupdate) rather than in the
+source zone.
+
 =item B<-i> I<regex>
 
 Ignore more DNS records. By default, B<nsdiff> strips out DNSSEC RRs
-before comparing zones. You can exclude irrelevant changes from the
-diff by supplying a I<regex> that matches the unwanted RRs.
+(except for DS) before comparing zones. You can exclude irrelevant
+changes from the diff by supplying a I<regex> that matches the
+unwanted RRs.
 
 =item B<-m> I<server>
 
