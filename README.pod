@@ -1,6 +1,6 @@
 =head1 nsdiff
 
-=head2 create an "nsupdate" script from DNS zone file diffrences
+=head2 create an "nsupdate" script from DNS zone file differences
 
 The B<nsdiff> program examines the old and new versions of a DNS zone,
 and outputs the differences as a script for use by BIND's B<nsupdate>
