@@ -38,8 +38,8 @@ options:
   -D                  do not ignore DNSKEY records
   -d                  ignore DS records
   -i regex            ignore records matching the pattern
-  -m server           from where to AXFR new version of the zone
-  -s server           from where to AXFR old version of the zone
+  -m server[#port]    from where to AXFR new version of the zone
+  -s server[#port]    from where to AXFR old version of the zone
   -S num|mode         SOA serial number or update mode
   -q                  only output if zones differ
   -u                  tell nsupdate to send to -s server
@@ -110,7 +110,8 @@ sub axfrzone {
     my $zone = shift;
     my $master = shift;
     wail "loading zone $zone via AXFR from $master" unless $quiet;
-    return cleanzone qx{dig @digopts +noadditional axfr $zone \@$master |
+    $master =~ s{^(.*)#(\d+)$}{-p $2 \@$1} or $master = '@'.$master;
+    return cleanzone qx{dig @digopts $master +noadditional axfr $zone |
                         $compilezone $zone /dev/stdin $quiet};
 }
 
@@ -284,14 +285,16 @@ Ignore more DNS records. By default, B<nsdiff> strips out DNSSEC RRs
 changes from the diff by supplying a I<regex> that matches the
 unwanted RRs.
 
-=item B<-m> I<server>
+=item B<-m> I<server>[#I<port>]
 
 Transfer the new version of the zone from the server given in this option,
-for example, a back-end hidden master server.
+for example, a back-end hidden master server. You can specify the server
+host name or IP address, optionally followed by a "#" and the port number.
 
-=item B<-s> I<server>
+=item B<-s> I<server>[#I<port>]
 
-Transfer the old version of the zone from the server given in this option.
+Transfer the old version of the zone from the server given in this option,
+using the same syntax as the B<-m> option.
 
 =item B<-S> B<date>|B<master>|B<serial>|B<unix>|I<num>
 
