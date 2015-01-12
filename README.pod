@@ -44,15 +44,15 @@ Download the full source archives:
 
 =item
 
-L<http://dotat.at/prog/nsdiff/nsdiff-1.52.tar.xz>
+L<http://dotat.at/prog/nsdiff/nsdiff-1.53.tar.xz>
 
 =item
 
-L<http://dotat.at/prog/nsdiff/nsdiff-1.52.tar.gz>
+L<http://dotat.at/prog/nsdiff/nsdiff-1.53.tar.gz>
 
 =item
 
-L<http://dotat.at/prog/nsdiff/nsdiff-1.52.zip>
+L<http://dotat.at/prog/nsdiff/nsdiff-1.53.zip>
 
 =back
 
