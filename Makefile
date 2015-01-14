@@ -46,9 +46,9 @@ release: ${DOCS}
 	./release.sh ${DOCS}
 
 upload:
-	git push github master
-	git push dotat master
-	git push csx master
+	git push --tags github master
+	git push --tags dotat master
+	git push --tags csx master
 	ln -sf README.html index.html
 	scp index.html README.html nsdiff.html nsdiff \
 		*.tar.xz *.tar.gz *.zip \
