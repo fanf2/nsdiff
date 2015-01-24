@@ -37,7 +37,7 @@ The nsdiff homepage is L<http://dotat.at/prog/nsdiff/>
 
 Read the nsdiff manual: L<http://dotat.at/prog/nsdiff/nsdiff.html>
 
-Read the nspatch manual: L<http://dotat.at/prog/nspatch/nspatch.html>
+Read the nspatch manual: L<http://dotat.at/prog/nsdiff/nspatch.html>
 
 =item Code
 
