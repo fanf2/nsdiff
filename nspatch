@@ -1,0 +1,194 @@
+#!/usr/bin/perl
+
+use warnings;
+use strict;
+
+use File::Temp qw(tempfile);
+use Getopt::Std;
+use POSIX;
+
+sub wail { warn "nspatch: @_\n"; }
+sub fail { die "nspatch: @_\n"; }
+sub fale { die "nspatch: @_: $!\n"; }
+
+sub version {
+    while (<DATA>) {
+	print if m{^=head1 VERSION} ... m{^=head1 }
+	  and not m{^=head1 };
+    }
+    exit;
+}
+
+sub usage {
+    print STDERR <<EOF;
+usage: nspatch [patch-opts] -- [diff-opts] -- [update-opts]
+  Runs `nsdiff [diff-opts] | nsupdate [update-opts]`.
+  Output is suppressed unless there is an error. The script
+  retries if it fails because of a concurrent update.
+nspatch options:
+ -h        display full documentation
+ -V        display version information
+ -r count  retry count (default 2)
+ -v        turn on verbose output
+EOF
+    exit 1;
+}
+my %opt;
+usage unless getopts 'hVrv', \%opt;
+version if $opt{V};
+exec "perldoc -F $0" if $opt{h};
+usage unless $opt{r} =~ m{^\d+$};
+
+my @nsdiff = ('nsdiff', '-v', $opt{v} ? 'qr' : '');
+while (@ARGV) {
+    my $arg = shift;
+    last if $arg eq '--';
+    push @nsdiff, $arg;
+}
+my @nsupdate = ('nsupdate', @ARGV);
+
+sub slurp ($) {
+    my $f = shift;
+    open my $h, '<', $f or fale "open $f";
+    undef $/;
+    return <$h>;
+}
+sub dupout ($$) {
+    no strict 'refs';
+    my ($dst,$src) = @_;
+    open $dst, '>&', $src or fale 'dup';
+}
+sub tmp {
+    my $dup = shift;
+    my ($fh,$name) = tempfile();
+    dupout $dup, $fh;
+    return $name;
+}
+
+dupout 'XSTDOUT', 'STDOUT';
+dupout 'XSTDERR', 'STDERR';
+sub runtmp {
+    wail "running @_" if $opt{v};
+    my $out = tmp 'STDOUT';
+    my $err = tmp 'STDERR';
+    my $x = system @_;
+    dupout 'STDOUT', 'XSTDOUT';
+    dupout 'STDERR', 'XSTDERR';
+    return ($out, $err, $x);
+}
+
+RETRY: for (;;) {
+    my ($diffout,$differr,$diffx) = runtmp @nsdiff;
+    if ($diffx % 256 > 0 || $diffx / 256 > 1) {
+	system 'cat', $diffout, $differr;
+	unlink $diffout, $differr;
+	fail "bad exit status from @nsdiff";
+    }
+    system 'cat', $diffout, $differr if $opt{v};
+    if ($diffx == 0) {
+	unlink $diffout, $differr;
+	wail "no need to run nsupdate" if $opt{v};
+	exit 0;
+    }
+    open STDIN, '<&', $diffout or fale 'dup';
+    my ($upout,$uperr,$upx) = runtmp @nsupdate;
+    if ($upx == 0) {
+	system 'cat', $diffout, $differr, $upout, $uperr if $opt{v};
+	unlink $diffout, $differr, $upout, $uperr;
+	exit 0;
+    }
+    if (slurp($uperr) eq "update failed: NXRRSET\n"
+	and slurp($upout) eq "" and $opt{r}--) {
+	system 'cat', $diffout, $differr, $upout, $uperr if $opt{v};
+	unlink $diffout, $differr, $upout, $uperr;
+	wail "trying again" if $opt{v};
+	next RETRY;
+    } else {
+	system 'cat', $diffout, $differr, $upout, $uperr;
+	unlink $diffout, $differr, $upout, $uperr;
+	fail "bad exit status from @nsupdate";
+    }
+}
+
+__END__
+
+=head1 NAME
+
+nspatch - run `nsdiff | nsupdate` with error handling
+
+=head1 SYNOPSIS
+
+nspatch [B<-hVv>] [B<-r> I<count>]
+        -- [nsdiff options] -- [nsupdate options]
+
+=head1 DESCRIPTION
+
+The B<nspatch> utility runs `C<nsdiff | nsupdate>` and checks that
+both programs complete successfully. It suppresses their output unless
+there is an error.
+
+The B<nsupdate> script produced by B<nsdiff> includes a prerequisite
+check to detect and fail if there is a concurrent update. These
+failures are detected by B<nspatch> which retries the update.
+
+Rather than using a pipe, B<nspatch> uses temporary files to store the
+output of B<nsdiff> and B<nsupdate>.
+
+=head1 OPTIONS
+
+=over
+
+=item B<-h>
+
+Display this documentation.
+
+=item B<-V>
+
+Display version information.
+
+=item B<-r> I<count>
+
+If the update fails because of a concurrent update, B<nspatch> will
+retry up to I<count> times. The default retry I<count> is 2.
+
+=item B<-v>
+
+Turn on verbose mode, so the output from B<nsdiff> and B<nsupdate> is
+printed even if they are successful. (By default it is suppressed.)
+
+The verbose option is passed on to B<nsdiff>. If B<nspatch> is not
+given the B<-v> option, it passes the B<-v ''> option to B<nsdiff>. If
+B<nspatch> is given the B<-v> option, it passes the B<-v 'qr'> option
+to B<nsdiff>.
+
+=back
+
+=head1 EXIT STATUS
+
+The B<nspatch> utility returns 0 if no change is required or if the
+update is successful, or 1 if there is an error.
+
+=head1 ENVIRONMENT
+
+=over
+
+=item C<TMPDIR>
+
+Location for temporary files.
+
+=back
+
+=head1 VERSION
+
+  This is nspatch-1.54 <http://dotat.at/prog/nsdiff/>
+
+  Written by Tony Finch <fanf2@cam.ac.uk> <dot@dotat.at>
+  at Cambridge University Information Services.
+  You may do anything with this. It has no warranty.
+  <http://creativecommons.org/publicdomain/zero/1.0/>
+
+=head1 SEE ALSO
+
+nsdiff(1), nsupdate(1)
+
+=cut
