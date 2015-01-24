@@ -3,7 +3,7 @@
 N=1.54
 V=nsdiff-$N
 
-perl -pi -e 's{(ns(diff|patch)-)\d\.\d\d}{$1'$N'}' \
+perl -pi -e 's{(ns(diff|patch)-)\d\.\d\d}{${1}'$N'}' \
 	README.pod nsdiff nspatch
 
 mkdir $V
