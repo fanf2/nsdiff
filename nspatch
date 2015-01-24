@@ -125,7 +125,7 @@ nspatch [B<-hVv>] [B<-r> I<count>]
 
 The B<nspatch> utility runs `C<nsdiff | nsupdate>` and checks that
 both programs complete successfully. It suppresses their output unless
-there is an error.
+there is an error, in a manner suitable for running from B<cron>.
 
 The B<nsupdate> script produced by B<nsdiff> includes a prerequisite
 check to detect and fail if there is a concurrent update. These
@@ -189,6 +189,6 @@ Location for temporary files.
 
 =head1 SEE ALSO
 
-nsdiff(1), nsupdate(1)
+nsdiff(1), nsupdate(1), cron(8)
 
 =cut
