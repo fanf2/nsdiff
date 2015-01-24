@@ -14,11 +14,9 @@ $ENV{PATH} .= ":/sbin:/usr/sbin:/usr/local/sbin";
 my $compilezone = 'named-compilezone -i local -k warn -n warn -o -';
 
 sub version {
-    my $p;
     while (<DATA>) {
-	$p = 0 if m{^=head1 };
-	print if $p;
-	$p = 1 if m{^=head1 VERSION};
+	print if m{^=head1 VERSION} ... m{^=head1 }
+	  and not m{^=head1 };
     }
     exit;
 }
