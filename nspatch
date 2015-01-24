@@ -37,7 +37,8 @@ my %opt;
 usage unless getopts 'hVrv', \%opt;
 version if $opt{V};
 exec "perldoc -F $0" if $opt{h};
-usage unless ++$opt{r} =~ m{^\d+$};
+$opt{r} //= 2;
+usage unless $opt{r} =~ m{^\d+$};
 
 my @nsdiff = ('nsdiff', '-v', $opt{v} ? 'qr' : '');
 while (@ARGV) {
@@ -101,10 +102,9 @@ RETRY: for (;;) {
 	unlink $dash, $diffout, $differr, $upout, $uperr;
 	exit 0;
     }
-    if (slurp($uperr) eq "update failed: NXRRSET\n"
-	and slurp($upout) eq "" and --$opt{r}) {
+    if (slurp($uperr) eq "update failed: NXRRSET\n" and $opt{r}--) {
 	system 'cat', $dash, $upout, $dash, $uperr, $dash if $opt{v};
-	unlink $dash, $diffout, $differr, $upout, $uperr;
+	unlink $diffout, $differr, $upout, $uperr;
 	wail "trying again" if $opt{v};
 	next RETRY;
     } else {
