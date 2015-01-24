@@ -37,7 +37,7 @@ my %opt;
 usage unless getopts 'hVrv', \%opt;
 version if $opt{V};
 exec "perldoc -F $0" if $opt{h};
-usage unless $opt{r} =~ m{^\d+$};
+usage unless ++$opt{r} =~ m{^\d+$};
 
 my @nsdiff = ('nsdiff', '-v', $opt{v} ? 'qr' : '');
 while (@ARGV) {
@@ -77,35 +77,42 @@ sub runtmp {
     return ($out, $err, $x);
 }
 
+my ($dashh,$dash) = tempfile();
+print $dashh "----\n";
+close $dashh;
+
 RETRY: for (;;) {
     my ($diffout,$differr,$diffx) = runtmp @nsdiff;
     if ($diffx % 256 > 0 || $diffx / 256 > 1) {
-	system 'cat', $diffout, $differr;
-	unlink $diffout, $differr;
+	system 'cat', $dash, $diffout, $dash, $differr, $dash;
+	unlink $dash, $diffout, $differr;
 	fail "bad exit status from @nsdiff";
     }
-    system 'cat', $diffout, $differr if $opt{v};
+    system 'cat', $dash, $diffout, $dash, $differr, $dash if $opt{v};
     if ($diffx == 0) {
-	unlink $diffout, $differr;
+	unlink $dash, $diffout, $differr;
 	wail "no need to run nsupdate" if $opt{v};
 	exit 0;
     }
-    open STDIN, '<&', $diffout or fale 'dup';
+    open STDIN, '<', $diffout or fale 'open';
     my ($upout,$uperr,$upx) = runtmp @nsupdate;
     if ($upx == 0) {
-	system 'cat', $diffout, $differr, $upout, $uperr if $opt{v};
-	unlink $diffout, $differr, $upout, $uperr;
+	system 'cat', $dash, $diffout, $dash, $differr,
+	  $dash, $upout, $dash, $uperr, $dash if $opt{v};
+	unlink $dash, $diffout, $differr, $upout, $uperr;
 	exit 0;
     }
     if (slurp($uperr) eq "update failed: NXRRSET\n"
-	and slurp($upout) eq "" and $opt{r}--) {
-	system 'cat', $diffout, $differr, $upout, $uperr if $opt{v};
-	unlink $diffout, $differr, $upout, $uperr;
+	and slurp($upout) eq "" and --$opt{r}) {
+	system 'cat', $dash, $diffout, $dash, $differr,
+	  $dash, $upout, $dash, $uperr, $dash if $opt{v};
+	unlink $dash, $diffout, $differr, $upout, $uperr;
 	wail "trying again" if $opt{v};
 	next RETRY;
     } else {
-	system 'cat', $diffout, $differr, $upout, $uperr;
-	unlink $diffout, $differr, $upout, $uperr;
+	system 'cat', $dash, $diffout, $dash, $differr,
+	  $dash, $upout, $dash, $uperr, $dash;
+	unlink $dash, $diffout, $differr, $upout, $uperr;
 	fail "bad exit status from @nsupdate";
     }
 }
