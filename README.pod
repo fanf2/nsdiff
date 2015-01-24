@@ -18,6 +18,9 @@ dynamic and partly static, for example, a reverse DNS zone mostly
 updated by a DHCP server, which also has a few static entries. You can
 use B<nsdiff> to update the static part of the zone.
 
+The B<nspatch> script is a wrapper around C<`nsdiff | nsupdate`> that
+checks and reports errors in a manner suitable for running from B<cron>.
+
 =head2 Dependencies
 
 To run nsdiff you need perl-5.10 or newer, and BIND version 9.7 or
@@ -44,15 +47,15 @@ Download the full source archives:
 
 =item
 
-L<http://dotat.at/prog/nsdiff/nsdiff-1.53.tar.xz>
+L<http://dotat.at/prog/nsdiff/nsdiff-1.54.tar.xz>
 
 =item
 
-L<http://dotat.at/prog/nsdiff/nsdiff-1.53.tar.gz>
+L<http://dotat.at/prog/nsdiff/nsdiff-1.54.tar.gz>
 
 =item
 
-L<http://dotat.at/prog/nsdiff/nsdiff-1.53.zip>
+L<http://dotat.at/prog/nsdiff/nsdiff-1.54.zip>
 
 =back
 

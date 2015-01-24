@@ -1,13 +1,10 @@
 #!/bin/sh
 
-V=nsdiff-$(./nsdiff -V | sed '/.* version /!d;s///;s/ .*//')
+N=1.54
+V=nsdiff-$N
 
-reversion () {
-	sed "s/nsdiff-[0-9.]*[0-9]/$V/g" <$1 >$1.tmp
-	mv $1.tmp $1
-}
-
-reversion README.pod
+perl -pi -e 's{(ns(diff|patch)-)\d\.\d\d}{$1'$N'}' \
+	README.pod nsdiff nspatch
 
 mkdir $V
 cp $(git ls-files | fgrep -v .git) "$@" $V
