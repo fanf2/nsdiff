@@ -97,15 +97,13 @@ RETRY: for (;;) {
     open STDIN, '<', $diffout or fale 'open';
     my ($upout,$uperr,$upx) = runtmp @nsupdate;
     if ($upx == 0) {
-	system 'cat', $dash, $diffout, $dash, $differr,
-	  $dash, $upout, $dash, $uperr, $dash if $opt{v};
+	system 'cat', $dash, $upout, $dash, $uperr, $dash if $opt{v};
 	unlink $dash, $diffout, $differr, $upout, $uperr;
 	exit 0;
     }
     if (slurp($uperr) eq "update failed: NXRRSET\n"
 	and slurp($upout) eq "" and --$opt{r}) {
-	system 'cat', $dash, $diffout, $dash, $differr,
-	  $dash, $upout, $dash, $uperr, $dash if $opt{v};
+	system 'cat', $dash, $upout, $dash, $uperr, $dash if $opt{v};
 	unlink $dash, $diffout, $differr, $upout, $uperr;
 	wail "trying again" if $opt{v};
 	next RETRY;
