@@ -108,8 +108,8 @@ RETRY: for (;;) {
 	wail "trying again" if $opt{v};
 	next RETRY;
     } else {
-	system 'cat', $dash, $diffout, $dash, $differr,
-	  $dash, $upout, $dash, $uperr, $dash;
+	system 'cat', $dash, $diffout, $dash, $differr unless $opt{v};
+	system 'cat', $dash, $upout, $dash, $uperr, $dash;
 	unlink $dash, $diffout, $differr, $upout, $uperr;
 	fail "bad exit status from @nsupdate";
     }
