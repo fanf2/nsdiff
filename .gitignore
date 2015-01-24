@@ -1,5 +1,11 @@
 nsdiff.1
 nsdiff.txt
 nsdiff.html
+nspatch.1
+nspatch.txt
+nspatch.html
 README.txt
 README.html
+nsdiff-*.tar.gz
+nsdiff-*.tar.xz
+nsdiff-*.zip
