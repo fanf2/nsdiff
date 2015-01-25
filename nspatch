@@ -84,34 +84,25 @@ close $dashh;
 
 RETRY: for (;;) {
     my ($diffout,$differr,$diffx) = runtmp @nsdiff;
-    if ($diffx % 256 > 0 || $diffx / 256 > 1) {
-	system 'cat', $dash, $diffout, $dash, $differr, $dash;
-	unlink $dash, $diffout, $differr;
-	fail "bad exit status from @nsdiff";
-    }
-    system 'cat', $dash, $diffout, $dash, $differr, $dash if $opt{v};
-    if ($diffx == 0) {
-	unlink $dash, $diffout, $differr;
-	wail "no need to run nsupdate" if $opt{v};
-	exit 0;
-    }
+    system 'cat', $dash, $diffout, $dash, $differr, $dash
+      if $opt{v} or ($diffx != 0 && $diffx != 256);
+    exit 0 if $diffx == 0;
+    fail "bad exit status from @nsdiff" if $diffx != 256;
     open STDIN, '<', $diffout or fale 'open';
     my ($upout,$uperr,$upx) = runtmp @nsupdate;
-    if ($upx == 0) {
-	system 'cat', $dash, $upout, $dash, $uperr, $dash if $opt{v};
-	unlink $dash, $diffout, $differr, $upout, $uperr;
-	exit 0;
-    }
+    system 'cat', $dash, $upout, $dash, $uperr, $dash if $opt{v};
+    exit 0 if $upx == 0;
     if (slurp($uperr) eq "update failed: NXRRSET\n" and $opt{r}--) {
-	system 'cat', $dash, $upout, $dash, $uperr, $dash if $opt{v};
-	unlink $diffout, $differr, $upout, $uperr;
 	wail "trying again" if $opt{v};
+	unlink $diffout, $differr, $upout, $uperr;
 	next RETRY;
     } else {
-	system 'cat', $dash, $diffout, $dash, $differr unless $opt{v};
-	system 'cat', $dash, $upout, $dash, $uperr, $dash;
-	unlink $dash, $diffout, $differr, $upout, $uperr;
+	system 'cat', $dash, $diffout, $dash, $differr,
+	  $dash, $upout, $dash, $uperr, $dash  unless $opt{v};
 	fail "bad exit status from @nsupdate";
+    }
+    END {
+	unlink $dash, $diffout, $differr, $upout, $uperr;
     }
 }
 
