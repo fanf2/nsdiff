@@ -21,9 +21,9 @@ all: ${DOCS}
 
 install: all
 	install -m 755 -d ${bindest}
-	install -m 755 nsdiff ${bindest}/
+	install -m 755 nsdiff nspatch ${bindest}/
 	install -m 755 -d ${man1dest}
-	install -m 644 nsdiff.1 ${man1dest}/
+	install -m 644 nsdiff.1 nspatch.1 ${man1dest}/
 
 clean:
 	rm -f ${DOCS}
