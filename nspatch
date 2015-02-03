@@ -102,7 +102,9 @@ RETRY: for (;;) {
 	fail "bad exit status from @nsupdate";
     }
     END {
-	unlink $dash, $diffout, $differr, $upout, $uperr;
+        for ($dash, $diffout, $differr, $upout, $uperr) {
+	    unlink if defined;
+        }
     }
 }
 
