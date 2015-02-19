@@ -59,9 +59,21 @@ sub dupout ($$) {
     my ($dst,$src) = @_;
     open $dst, '>&', $src or fale 'dup';
 }
+
+my ($tmptraceh,$tmptrace) = tempfile('tmptrace.XXXXXXXXXX', TMPDIR => 1);
+sub tmpf {
+    my ($h,$f) = tempfile('nspatch.XXXXXXXXXX', TMPDIR => 1);
+    print $tmptraceh "+ $f\n";
+    return ($h,$f);
+}
+sub tmprm {
+    print $tmptraceh "- $_\n" for @_;
+    unlink @_;
+}
+
 sub tmp {
     my $dup = shift;
-    my ($fh,$name) = tempfile();
+    my ($fh,$name) = tmpf;
     dupout $dup, $fh;
     return $name;
 }
@@ -78,7 +90,7 @@ sub runtmp {
     return ($out, $err, $x);
 }
 
-my ($dashh,$dash) = tempfile();
+my ($dashh,$dash) = tmpf;
 print $dashh "----\n";
 close $dashh;
 
@@ -94,7 +106,7 @@ RETRY: for (;;) {
     exit 0 if $upx == 0;
     if (slurp($uperr) eq "update failed: NXRRSET\n" and $opt{r}--) {
 	wail "trying again" if $opt{v};
-	unlink $diffout, $differr, $upout, $uperr;
+	tmprm $diffout, $differr, $upout, $uperr;
 	next RETRY;
     } else {
 	system 'cat', $dash, $diffout, $dash, $differr,
@@ -102,8 +114,8 @@ RETRY: for (;;) {
 	fail "bad exit status from @nsupdate";
     }
     END {
-        for ($dash, $diffout, $differr, $upout, $uperr) {
-	    unlink if defined;
+        for my $f ($dash, $diffout, $differr, $upout, $uperr) {
+	    tmprm $f if defined $f;
         }
     }
 }
