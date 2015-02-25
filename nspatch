@@ -94,14 +94,21 @@ my ($dashh,$dash) = tmpf;
 print $dashh "----\n";
 close $dashh;
 
+my ($diffout,$differr,$diffx);
+my ($upout,$uperr,$upx);
+
+END {
+    tmprm $dash, $diffout, $differr, $upout, $uperr;
+}
+
 RETRY: for (;;) {
-    my ($diffout,$differr,$diffx) = runtmp @nsdiff;
+    ($diffout,$differr,$diffx) = runtmp @nsdiff;
     system 'cat', $dash, $diffout, $dash, $differr, $dash
       if $opt{v} or ($diffx != 0 && $diffx != 256);
     exit 0 if $diffx == 0;
     fail "bad exit status from @nsdiff" if $diffx != 256;
     open STDIN, '<', $diffout or fale 'open';
-    my ($upout,$uperr,$upx) = runtmp @nsupdate;
+    ($upout,$uperr,$upx) = runtmp @nsupdate;
     system 'cat', $dash, $upout, $dash, $uperr, $dash if $opt{v};
     exit 0 if $upx == 0;
     if (slurp($uperr) eq "update failed: NXRRSET\n" and $opt{r}--) {
@@ -112,11 +119,6 @@ RETRY: for (;;) {
 	system 'cat', $dash, $diffout, $dash, $differr,
 	  $dash, $upout, $dash, $uperr, $dash  unless $opt{v};
 	fail "bad exit status from @nsupdate";
-    }
-    END {
-        for my $f ($dash, $diffout, $differr, $upout, $uperr) {
-	    tmprm $f if defined $f;
-        }
     }
 }
 
