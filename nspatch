@@ -67,8 +67,14 @@ sub tmpf {
     return ($h,$f);
 }
 sub tmprm {
-    print $tmptraceh "- $_\n" for @_;
-    unlink @_;
+    for (@_) {
+	if ($_) {
+	    print $tmptraceh "- $_\n";
+	    unlink $_;
+	} else {
+	    print $tmptraceh "- (undef)\n";
+	}
+    }
 }
 
 sub tmp {
