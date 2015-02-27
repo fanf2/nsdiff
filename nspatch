@@ -61,9 +61,13 @@ sub dupout ($$) {
 }
 my @tempfile;
 sub mktmp {
-    my $dup = shift;
     my ($fh,$name) = tempfile('nspatch.XXXXXXXXXX', TMPDIR => 1);
     push @tempfile, $name;
+    return ($fh,$name);
+}
+sub tmpf {
+    my $dup = shift;
+    my ($fh,$name) = mktmp;
     dupout $dup, $fh;
     return $name;
 }
@@ -75,8 +79,8 @@ dupout 'XSTDOUT', 'STDOUT';
 dupout 'XSTDERR', 'STDERR';
 sub runtmp {
     wail "running @_" if $opt{v};
-    my $out = mktmp 'STDOUT';
-    my $err = mktmp 'STDERR';
+    my $out = tmpf 'STDOUT';
+    my $err = tmpf 'STDERR';
     my $x = system @_;
     dupout 'STDOUT', 'XSTDOUT';
     dupout 'STDERR', 'XSTDERR';
@@ -177,7 +181,7 @@ Location for temporary files.
 
 =head1 VERSION
 
-  This is nspatch-1.57 <http://dotat.at/prog/nsdiff/>
+  This is nspatch-1.58 <http://dotat.at/prog/nsdiff/>
 
   Written by Tony Finch <fanf2@cam.ac.uk> <dot@dotat.at>
   at Cambridge University Information Services.

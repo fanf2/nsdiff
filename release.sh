@@ -1,6 +1,6 @@
 #!/bin/sh
 
-N=1.58
+N=1.59
 V=nsdiff-$N
 
 perl -pi -e 's{(ns(diff|patch)-)\d\.\d\d}{${1}'$N'}' \
