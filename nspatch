@@ -59,67 +59,46 @@ sub dupout ($$) {
     my ($dst,$src) = @_;
     open $dst, '>&', $src or fale 'dup';
 }
-
-my ($tmptraceh,$tmptrace) = tempfile('tmptrace.XXXXXXXXXX', TMPDIR => 1);
-sub tmpf {
-    my ($h,$f) = tempfile('nspatch.XXXXXXXXXX', TMPDIR => 1);
-    print $tmptraceh "+ $f\n";
-    return ($h,$f);
-}
-sub tmprm {
-    for (@_) {
-	if ($_) {
-	    print $tmptraceh "- $_\n";
-	    unlink $_;
-	} else {
-	    print $tmptraceh "- (undef)\n";
-	}
-    }
-}
-
-sub tmp {
+my @tempfile;
+sub mktmp {
     my $dup = shift;
-    my ($fh,$name) = tmpf;
+    my ($fh,$name) = tempfile('nspatch.XXXXXXXXXX', TMPDIR => 1);
+    push @tempfile, $name;
     dupout $dup, $fh;
     return $name;
+}
+END {
+    unlink @tempfile;
 }
 
 dupout 'XSTDOUT', 'STDOUT';
 dupout 'XSTDERR', 'STDERR';
 sub runtmp {
     wail "running @_" if $opt{v};
-    my $out = tmp 'STDOUT';
-    my $err = tmp 'STDERR';
+    my $out = mktmp 'STDOUT';
+    my $err = mktmp 'STDERR';
     my $x = system @_;
     dupout 'STDOUT', 'XSTDOUT';
     dupout 'STDERR', 'XSTDERR';
     return ($out, $err, $x);
 }
 
-my ($dashh,$dash) = tmpf;
+my ($dashh,$dash) = mktmp;
 print $dashh "----\n";
 close $dashh;
 
-my ($diffout,$differr,$diffx);
-my ($upout,$uperr,$upx);
-
-END {
-    tmprm $dash, $diffout, $differr, $upout, $uperr;
-}
-
 RETRY: for (;;) {
-    ($diffout,$differr,$diffx) = runtmp @nsdiff;
+    my ($diffout,$differr,$diffx) = runtmp @nsdiff;
     system 'cat', $dash, $diffout, $dash, $differr, $dash
       if $opt{v} or ($diffx != 0 && $diffx != 256);
     exit 0 if $diffx == 0;
     fail "bad exit status from @nsdiff" if $diffx != 256;
     open STDIN, '<', $diffout or fale 'open';
-    ($upout,$uperr,$upx) = runtmp @nsupdate;
+    my ($upout,$uperr,$upx) = runtmp @nsupdate;
     system 'cat', $dash, $upout, $dash, $uperr, $dash if $opt{v};
     exit 0 if $upx == 0;
     if (slurp($uperr) eq "update failed: NXRRSET\n" and $opt{r}--) {
 	wail "trying again" if $opt{v};
-	tmprm $diffout, $differr, $upout, $uperr;
 	next RETRY;
     } else {
 	system 'cat', $dash, $diffout, $dash, $differr,
