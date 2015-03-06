@@ -12,7 +12,7 @@ case $# in
 	;;
 esac
 
-perl -pi -e 's{(ns(diff|patch)-)\d\.\d\d}{${1}'$N'}' \
+perl -pi -e 's{(ns(diff|patch)-)\d\.\d\d(\.X)?}{${1}'$N'}' \
 	README.pod nsdiff nspatch
 
 case $# in
