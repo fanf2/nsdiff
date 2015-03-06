@@ -1,11 +1,6 @@
 #!/bin/sh
 
-N=1.59
-V=nsdiff-$N
-
-perl -pi -e 's{(ns(diff|patch)-)\d\.\d\d}{${1}'$N'}' \
-	README.pod nsdiff nspatch
-
+V=$(git describe --tags --dirty=.X)
 mkdir $V
 cp $(git ls-files | fgrep -v .git) "$@" $V
 zip -qr $V.zip $V
