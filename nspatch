@@ -59,20 +59,15 @@ sub dupout ($$) {
     my ($dst,$src) = @_;
     open $dst, '>&', $src or fale 'dup';
 }
-my @tempfile;
 sub mktmp {
-    my ($fh,$name) = tempfile('nspatch.XXXXXXXXXX', TMPDIR => 1);
-    push @tempfile, $name;
-    return ($fh,$name);
+    return tempfile('nspatch.XXXXXXXXXX',
+		    TMPDIR => 1, UNLINK => 1);
 }
 sub tmpf {
     my $dup = shift;
     my ($fh,$name) = mktmp;
     dupout $dup, $fh;
     return $name;
-}
-END {
-    unlink @tempfile;
 }
 
 dupout 'XSTDOUT', 'STDOUT';
