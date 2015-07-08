@@ -86,13 +86,12 @@ my $soafun = $soamode =~ m{^[0-9]+$} ?
 
 my $zone = shift; $zone =~ s{[.]?$}{.};
 my $zonere = quotemeta $zone;
-my $hostname = qr{(?:[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?[.])+|[.]};
-my $soare = qr{^$zonere\s+(\d+)\s+(IN\s+SOA\s+$hostname\s+$hostname)
+my $hostname = qr{(?:[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?[.])+};
+my $rname = qr{(?:[^;.\\\s]|\\.)+[.]$hostname};
+my $soare = qr{^$zonere\s+(\d+)\s+(IN\s+SOA\s+$hostname\s+$rname)
 	       \s+(\d+)\s+(\d+\s+\d+\s+\d+\s+\d+\n)$}x;
 my $dnssec = qr{^\S+\s+\d+\s+IN\s+($secRRtypes)\s+};
 my $exclude = $opt{i} ? qr{$dnssec|$opt{i}} : qr{$dnssec};
-
-fail "not a domain name: $zone" unless $zone =~ m{^$hostname$};
 
 # Check there is a SOA and remove DNSSEC records.
 # Store zone data in the keys of a hash.
