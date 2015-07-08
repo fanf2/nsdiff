@@ -63,7 +63,7 @@ upload:
 	git push --tags dotat master
 	git push --tags csx master
 	ln -sf README.html index.html
-	scp index.html README.html nsdiff.html nspatch.html nsdiff \
+	rsync -ilt index.html README.html nsdiff.html nspatch.html nsdiff \
 		*.tar.xz *.tar.gz *.zip \
 		chiark:public-html/prog/nsdiff/
 	cp nsdiff /home/uxsup/fanf2/public_html/hermes/conf/bind/bin/
