@@ -48,17 +48,19 @@ $opt{v} = 'qr' if $opt{v};
 my @dig = qw{dig +multiline +onesoa +nocmd +nostats +noadditional};
 push @dig, map "-$_$opt{$_}",
     grep $opt{$_}, qw{k y};
-if ($opt{s} =~ m{^(.*)#(\d+)$}) {
-	push @dig, "-p$2", "\@$1";
+if ($opt{s} and $opt{s} =~ m{^(.*)#(\d+)$}) {
+    push @dig, "-p$2", "\@$1";
+} elsif ($opt{s}) {
+    push @dig, "\@$opt{s}";
 } else {
-	push @dig, "\@$opt{s}";
+    push @dig, "\@localhost";
 }
 
 my @nsdiff = qw{nsdiff};
 push @nsdiff, map "-$_",
     grep $opt{$_}, qw{0 1 c d D};
 push @nsdiff, map "-$_$opt{$_}",
-    grep $opt{$_}, qw{s S v};
+    grep $opt{$_}, qw{k s S v y};
 push @nsdiff, "-u" if $opt{s};
 
 my @nsupdate = qw{nsupdate};
@@ -79,12 +81,51 @@ my $rdata = qr{(?:[^()\n]+
 my $dnssec = qr{(?m)^\S+\s+\d+\s+IN\s+($secRRtypes)\s+$rdata};
 
 my $axfr = qx{@dig axfr $zone};
-fail "dig axfr $zone failed" unless $axfr and $? == 0;
+fail "failed to @dig axfr $zone" unless $axfr and $? == 0;
 
 $axfr =~ s{$dnssec}{}g;
 
-print $axfr;
+my ($fh,$fn) = tempfile("$zone.XXXXXXXXXX",
+			TMPDIR => 1, UNLINK => 1);
+print $fh $axfr;
+close $fh;
 
+my $vi = $ENV{VISUAL} || $ENV{EDITOR} || "vi";
+
+sub getch {
+    system "stty -icanon";
+    sysread STDIN, my $ch, 1;
+    system "stty icanon";
+    return $ch;
+}
+
+sub retry {
+    wail shift;
+    warn "re-edit and try again? (Y/n) ";
+    next RETRY if getch =~ m{[Yy\n]};
+    exit 1;
+}
+
+RETRY: for (;;) {
+    system "$vi $fn";
+    fail "failed to $vi $fn" unless $? == 0;
+
+    my $diff = qx{@nsdiff $zone $fn};
+    if ($? == 0) {
+	wail "no change";
+	exit 0;
+    }
+    retry "failed to @nsdiff $zone $fn"
+	unless $diff and $? == 256;
+    open my $ph, '|-', @nsupdate
+	or retry "pipe to @nsupdate: $!";
+    print $ph $diff;
+    last if close $ph;
+    retry "pipe to @nsupdate: $!" if $!;
+    retry "failed to @nsupdate";
+}
+
+warn "done";
 exit 0;
 
 __END__
@@ -135,10 +176,9 @@ For details see the L<nsdiff> manual.
 
 =item B<-s> I<server>[#I<port>]
 
-Transfer the old version of the zone from the server given in this
-option, and send the update request to the same place. You can specify
-the server host name or IP address, optionally followed by a "#" and
-the port number.
+Transfer the zone from the server given in this option, and send the
+update request to the same place. You can specify the server host name
+or IP address, optionally followed by a "#" and the port number.
 
 If you do not use the B<-s> option, the zone will be transferred
 from I<localhost>, and B<nsvi> will use B<nsupdate> B<-l> to update
@@ -146,11 +186,28 @@ the zone.
 
 =item B<-k> I<keyfile>
 
-TSIG key file, passed to B<nsdiff> and B<nsupdate>.
+TSIG key file, passed to B<dig>, B<nsdiff>, and B<nsupdate>.
 
 =item B<-y> [I<hmac>:]I<name>:I<key>
 
-Literal TSIG key, passed to B<nsdiff> and B<nsupdate>.
+Literal TSIG key, passed to B<dig>, B<nsdiff>, and B<nsupdate>.
+
+=back
+
+=head1 ENVIRONMENT
+
+=over
+
+=item B<TMPDIR>
+
+Location for temporary files.
+
+=item B<VISUAL>
+
+=item B<EDITOR>
+
+Which editor to use. C<$VISUAL> is used if it is set,
+otherwise C<$EDITOR>, otherwise B<vi>.
 
 =back
 
