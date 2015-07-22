@@ -143,13 +143,12 @@ my $soamin = $soafun->($3);
 
 my (%del,%add,%uc);
 
-if ($opt{c}) {
-    $uc{lc $_} = $_ for keys %$new;
-}
+map { $uc{lc $_} = $_ } keys %$new if $opt{c};
+
 for my $rr (keys %$old) {
     delete $old->{$rr};
+    next if $uc{lc $rr} and delete $new->{delete $uc{lc $rr}};
     next if delete $new->{$rr};
-    next if $uc{lc $rr} and delete $new->{$uc{lc $rr}} and delete $uc{lc $rr};
     my ($owner,$ttl,$data) = split ' ', $rr, 3;
     push @{$del{$owner}}, $data;
 }
