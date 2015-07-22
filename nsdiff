@@ -33,6 +33,7 @@ options:
   -V                  display version information
   -0                  allow a domain's updates to span packets
   -1                  abort if update doesn't fit in one packet
+  -c                  compare records case-insensitively
   -D                  do not ignore DNSKEY records
   -d                  ignore DS records
   -i regex            ignore records matching the pattern
@@ -49,7 +50,7 @@ EOF
     exit 2;
 }
 my %opt;
-usage unless getopts '-hV01Ddi:m:s:S:quv:b:k:y:', \%opt;
+usage unless getopts '-hV01cDdi:m:s:S:quv:b:k:y:', \%opt;
 version if $opt{V};
 exec "perldoc -F $0" if $opt{h};
 usage if @ARGV < 1 || @ARGV > 3;
@@ -140,11 +141,15 @@ my $soamin = $soafun->($3);
 
 # Remove unchanged RRs, and save each name's deletions and additions.
 
-my (%del,%add);
+my (%del,%add,%uc);
 
+if ($opt{c}) {
+    $uc{lc $_} = $_ for keys %$new;
+}
 for my $rr (keys %$old) {
     delete $old->{$rr};
     next if delete $new->{$rr};
+    next if $uc{lc $rr} and delete $new->{$uc{lc $rr}} and delete $uc{lc $rr};
     my ($owner,$ttl,$data) = split ' ', $rr, 3;
     push @{$del{$owner}}, $data;
 }
@@ -217,7 +222,7 @@ nsdiff - create "nsupdate" script from DNS zone file differences
 =head1 SYNOPSIS
 
 nsdiff [B<-hV>] [B<-b> I<address>] [B<-k> I<keyfile>] [B<-y> [I<hmac>:]I<name>:I<key>]
-       [B<-0>|B<-1>] [B<-q>|B<-v> [q][r]] [B<-D>] [B<-i> I<regex>] [B<-S> I<mode>|I<num>]
+       [B<-0>|B<-1>] [B<-q>|B<-v> [q][r]] [B<-cdD>] [B<-i> I<regex>] [B<-S> I<mode>|I<num>]
        [B<-u>] [B<-s> I<server>] [B<-m> I<server>] <I<zone>> [I<old>] [I<new>]
 
 =head1 DESCRIPTION
@@ -258,6 +263,13 @@ multiple requests.
 =item B<-1>
 
 Abort if update does not fit in one request packet.
+
+=item B<-c>
+
+Compare records case-insensitively. Can be helpful if the B<nsupdate>
+target server does not preserve the case of domain names. However with
+this option, B<nsdiff> does not correctly handle records that only
+differ in case.
 
 =item B<-D>
 
