@@ -34,8 +34,8 @@ options:
   -0                  allow a domain's updates to span packets
   -1                  abort if update doesn't fit in one packet
   -c                  compare records case-insensitively
-  -D                  do not ignore DNSKEY records
   -d                  ignore DS records
+  -D                  do not ignore DNSKEY records
   -i regex            ignore records matching the pattern
   -m server[#port]    from where to AXFR new version of the zone
   -s server[#port]    from where to AXFR old version of the zone
@@ -50,7 +50,7 @@ EOF
     exit 2;
 }
 my %opt;
-usage unless getopts '-hV01cDdi:m:s:S:quv:b:k:y:', \%opt;
+usage unless getopts '-hV01cdDi:m:s:S:quv:b:k:y:', \%opt;
 version if $opt{V};
 exec "perldoc -F $0" if $opt{h};
 usage if @ARGV < 1 || @ARGV > 3;
