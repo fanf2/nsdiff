@@ -172,7 +172,7 @@ Display version information.
 =item B<-S> B<mode>|I<num>
 
 These options are passed to B<nsdiff>.
-For details see the L<nsdiff> manual.
+For details see the nsdiff manual.
 
 =item B<-s> I<server>[#I<port>]
 
