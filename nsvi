@@ -1,0 +1,141 @@
+#!/usr/bin/perl
+
+use warnings;
+use strict;
+
+use File::Temp qw(tempfile);
+use Getopt::Std;
+use POSIX;
+
+sub wail { warn "nsvi: @_\n"; }
+sub fail { die "nsvi: @_\n"; }
+sub fale { die "nsvi: @_: $!\n"; }
+
+sub version {
+    while (<DATA>) {
+	print if m{^=head1 VERSION} ... m{^=head1 }
+	  and not m{^=head1 };
+    }
+    exit;
+}
+
+sub usage {
+    print STDERR <<EOF;
+usage: nsvi [options] <zone>
+  Transfer a zone from its server, edit it, then
+  upload the edits using `nsdiff` and `nsupdate`.
+nsvi options:
+  -h                  display full documentation
+  -V                  display version information
+  -v                  turn on verbose output
+  -01cdD              nsdiff options
+  -S num|mode         SOA serial number or mode
+  -s server[#port]    where to AXFR and UPDATE the zone
+  -k keyfile          AXFR and UPDATE TSIG key
+  -y [hmac:]name:key  AXFR and UPDATE TSIG key
+EOF
+    exit 1;
+}
+my %opt;
+usage unless getopts '-hV01cdDk:s:S:vy:', \%opt;
+version if $opt{V};
+exec "perldoc -F $0" if $opt{h};
+usage if @ARGV != 1;
+
+$opt{v} = 'qr' if $opt{v};
+
+my @nsdiff = qw{nsdiff};
+push @nsdiff, map "-$_",
+    grep $opt{$_}, qw{0 1 c d D};
+push @nsdiff, map "-$_$opt{$_}",
+    grep $opt{$_}, qw{k s S v y};
+push @nsdiff, "-u" if $opt{s};
+
+my @nsupdate = qw{nsupdate};
+push @nsupdate, map "-$_$opt{$_}",
+    grep $opt{$_}, qw{k y};
+push @nsupdate, "-l" unless $opt{s};
+
+exit 0;
+
+__END__
+
+=head1 NAME
+
+nsvi - transfer a zone, edit it, then upload the edits
+
+=head1 SYNOPSIS
+
+nsvi [B<-01cdDhvV>] [B<-k> I<keyfile>] [B<-y> [I<hmac>:]I<name>:I<key>]
+     [B<-S> I<mode>|I<num>] [B<-s> I<server>] <I<zone>>
+
+=head1 DESCRIPTION
+
+The B<nsvi> program makes an AXFR query to transfer the zone, then
+runs your editor so you can make whatever changes you require, then it
+runs B<nsdiff> | B<nsupdate> to push those changes to the server.
+
+Automatically-maintained DNSSEC records are stripped from the zone
+before it is passed to your editor, and you do not need to manually
+adjust the SOA serial number.
+
+=head1 OPTIONS
+
+Most B<nsvi> options are passed to B<nsdiff> and some to B<nsupdate>.
+
+=over
+
+=item B<-h>
+
+Display this documentation.
+
+=item B<-v>
+
+Verbose mode.
+
+=item B<-V>
+
+Display version information.
+
+=item B<-01cdD>
+
+=item B<-S> B<mode>|I<num>
+
+These options are passed to B<nsdiff>.
+For details see the L<nsdiff> manual.
+
+=item B<-s> I<server>[#I<port>]
+
+Transfer the old version of the zone from the server given in this
+option, and send the update request to the same place. You can specify
+the server host name or IP address, optionally followed by a "#" and
+the port number.
+
+If you do not use the B<-s> option, the zone will be transferred
+from I<localhost>, and B<nsvi> will use B<nsupdate> B<-l> to update
+the zone.
+
+=item B<-k> I<keyfile>
+
+TSIG key file, passed to B<nsdiff> and B<nsupdate>.
+
+=item B<-y> [I<hmac>:]I<name>:I<key>
+
+Literal TSIG key, passed to B<nsdiff> and B<nsupdate>.
+
+=back
+
+=head1 VERSION
+
+  This is nsvi-1.61 <http://dotat.at/prog/nsdiff/>
+
+  Written by Tony Finch <fanf2@cam.ac.uk> <dot@dotat.at>
+  at Cambridge University Information Services.
+  You may do anything with this. It has no warranty.
+  <http://creativecommons.org/publicdomain/zero/1.0/>
+
+=head1 SEE ALSO
+
+nsdiff(1), nsupdate(1), dig(1).
+
+=cut
