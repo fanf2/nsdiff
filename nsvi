@@ -41,20 +41,49 @@ usage unless getopts '-hV01cdDk:s:S:vy:', \%opt;
 version if $opt{V};
 exec "perldoc -F $0" if $opt{h};
 usage if @ARGV != 1;
+my $zone = shift;
 
 $opt{v} = 'qr' if $opt{v};
+
+my @dig = qw{dig +multiline +onesoa +nocmd +nostats +noadditional};
+push @dig, map "-$_$opt{$_}",
+    grep $opt{$_}, qw{k y};
+if ($opt{s} =~ m{^(.*)#(\d+)$}) {
+	push @dig, "-p$2", "\@$1";
+} else {
+	push @dig, "\@$opt{s}";
+}
 
 my @nsdiff = qw{nsdiff};
 push @nsdiff, map "-$_",
     grep $opt{$_}, qw{0 1 c d D};
 push @nsdiff, map "-$_$opt{$_}",
-    grep $opt{$_}, qw{k s S v y};
+    grep $opt{$_}, qw{s S v};
 push @nsdiff, "-u" if $opt{s};
 
 my @nsupdate = qw{nsupdate};
 push @nsupdate, map "-$_$opt{$_}",
     grep $opt{$_}, qw{k y};
 push @nsupdate, "-l" unless $opt{s};
+
+my $secRRtypes = qr{NSEC|NSEC3|NSEC3PARAM|RRSIG|TYPE65534};
+$secRRtypes = qr{$secRRtypes|DNSKEY} unless $opt{D};
+$secRRtypes = qr{$secRRtypes|DS} if $opt{d};
+
+my $nl = qr{(?:;[^\n]*)?\n};
+my $rdata = qr{(?:[^()\n]+
+                 |(?:[(]
+                      (?:[^()\n]+|$nl)+
+                     [)])+
+                 )+$nl}x;
+my $dnssec = qr{(?m)^\S+\s+\d+\s+IN\s+($secRRtypes)\s+$rdata};
+
+my $axfr = qx{@dig axfr $zone};
+fail "dig axfr $zone failed" unless $axfr and $? == 0;
+
+$axfr =~ s{$dnssec}{}g;
+
+print $axfr;
 
 exit 0;
 
