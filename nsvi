@@ -141,9 +141,9 @@ nsvi [B<-01cdDhvV>] [B<-k> I<keyfile>] [B<-y> [I<hmac>:]I<name>:I<key>]
 
 =head1 DESCRIPTION
 
-The B<nsvi> program makes an AXFR query to transfer the zone, then
-runs your editor so you can make whatever changes you require, then it
-runs B<nsdiff> | B<nsupdate> to push those changes to the server.
+The B<nsvi> program makes an AXFR request for the zone, runs your
+editor so you can make whatever changes you require, then it runs
+B<nsdiff> | B<nsupdate> to push those changes to the server.
 
 Automatically-maintained DNSSEC records are stripped from the zone
 before it is passed to your editor, and you do not need to manually
