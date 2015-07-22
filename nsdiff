@@ -72,6 +72,8 @@ usage if $opt{v} && $opt{v} !~ m{^[qr]*$};
 my $quiet = $opt{q} ? '2>/dev/null' : '';
 my $verbosity = exists $opt{v} ? $opt{v} : $quiet ? '' : 'r';
 
+$opt{$_} =~ s{#}{ } for qw{ s m }; # for nsupdate server command
+
 my $secRRtypes = qr{NSEC|NSEC3|NSEC3PARAM|RRSIG|TYPE65534};
 $secRRtypes = qr{$secRRtypes|DNSKEY} unless $opt{D};
 $secRRtypes = qr{$secRRtypes|DS} if $opt{d};
@@ -108,7 +110,7 @@ sub axfrzone {
     my $zone = shift;
     my $master = shift;
     wail "loading zone $zone via AXFR from $master" unless $quiet;
-    $master =~ s{^(.*)#(\d+)$}{-p $2 \@$1} or $master = '@'.$master;
+    $master =~ s{^(.*) (\d+)$}{-p $2 \@$1} or $master = '@'.$master;
     return cleanzone qx{dig @digopts $master +noadditional axfr $zone |
                         $compilezone $zone /dev/stdin $quiet};
 }
