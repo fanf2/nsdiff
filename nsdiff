@@ -509,8 +509,9 @@ because it isn't possible to delete all a zone's name servers.
 =head1 ACKNOWLEDGMENTS
 
 Thanks to Mike Bristow, Piete Brooks (University of Cambridge Computer
-Laboratory), Terry Burton (University of Leicester), and Mohamad
-Shidiq Purnama (PANDI) for providing useful feedback.
+Laboratory), Terry Burton (University of Leicester), Mohamad Shidiq
+Purnama (PANDI), and Jordan Rieger (webnames.ca) for providing useful
+feedback.
 
 =head1 SEE ALSO
 
