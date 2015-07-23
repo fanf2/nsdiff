@@ -7,6 +7,11 @@ and outputs the differences as a script for use by BIND's B<nsupdate>
 program. It provides a bridge between static zone files and dynamic
 updates.
 
+The B<nspatch> script is a wrapper around C<`nsdiff | nsupdate`> that
+checks and reports errors in a manner suitable for running from B<cron>.
+
+The B<nsvi> script makes it easy to edit a dynamic zone.
+
 If you use BIND 9.7 or 9.8, you can use B<nsdiff> as an alternative
 to the DNSSEC C<inline-signing> feature which appeared in BIND 9.9.
 The server updates the DNSSEC records dynamically, but you can
@@ -17,9 +22,6 @@ There are other situations where you have a zone which is partly
 dynamic and partly static, for example, a reverse DNS zone mostly
 updated by a DHCP server, which also has a few static entries. You can
 use B<nsdiff> to update the static part of the zone.
-
-The B<nspatch> script is a wrapper around C<`nsdiff | nsupdate`> that
-checks and reports errors in a manner suitable for running from B<cron>.
 
 =head2 Dependencies
 
@@ -39,9 +41,11 @@ Read the nsdiff manual: L<http://dotat.at/prog/nsdiff/nsdiff.html>
 
 Read the nspatch manual: L<http://dotat.at/prog/nsdiff/nspatch.html>
 
+Read the nsvi manual: L<http://dotat.at/prog/nsdiff/nsvi.html>
+
 =item Code
 
-Download the bare perl source: L<http://dotat.at/prog/nsdiff/nsdiff>
+Download the bare nsdiff perl source: L<http://dotat.at/prog/nsdiff/nsdiff>
 
 Download the full source archives:
 

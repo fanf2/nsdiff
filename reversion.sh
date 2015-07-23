@@ -12,8 +12,8 @@ case $# in
 	;;
 esac
 
-perl -pi -e 's{(ns(diff|patch)-)\d\.\d\d(\.X)?}{${1}'$N'}' \
-	README.pod nsdiff nspatch
+perl -pi -e 's{(ns(diff|patch|vi)-)\d\.\d\d(\.X)?}{${1}'$N'}' \
+	README.pod nsdiff nspatch nsvi
 
 case $# in
 (0)	git diff

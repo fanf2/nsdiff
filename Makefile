@@ -8,51 +8,40 @@ man1dir=	${mandir}/man1
 bindest=	${DESTDIR}${bindir}
 man1dest=	${DESTDIR}${man1dir}
 
-DOCS=	nsdiff.1	\
-	nsdiff.txt	\
-	nsdiff.html	\
-	nspatch.1	\
-	nspatch.txt	\
-	nspatch.html	\
-	README.txt	\
-	README.html
+PROGS=		nsdiff nspatch nsvi
+DOCSRC=		${PROGS} README
+
+man1files=	${PROGS:=.1}
+podlinks=	${PROGS:=.pod}
+txtfiles=	${DOCSRC:=.txt}
+htmlfiles=	${DOCSRC:=.html}
+
+DOCS=	${man1files} ${htmlfiles} ${txtfiles}
 
 all: ${DOCS}
 
 install: all
 	install -m 755 -d ${bindest}
-	install -m 755 nsdiff nspatch ${bindest}/
+	install -m 755 ${PROGS} ${bindest}/
 	install -m 755 -d ${man1dest}
-	install -m 644 nsdiff.1 nspatch.1 ${man1dest}/
+	install -m 644 ${man1files} ${man1dest}/
 
 clean:
-	rm -f ${DOCS}
+	rm -f ${DOCS} ${podlinks}
 
-nsdiff.1: nsdiff
-	pod2man nsdiff >nsdiff.1
+${podlinks}:
+	for f in ${PROGS}; do ln -sf $$f $$f.pod; done
 
-nsdiff.txt: nsdiff
-	pod2text nsdiff >nsdiff.txt
+.SUFFIXES: .1 .pod .txt .html
 
-nsdiff.html: nsdiff
-	pod2html nsdiff | sed -f fixhtml.sed >nsdiff.html
-	rm pod2htm?.tmp
+.pod.1:
+	pod2man $< >$@
 
-nspatch.1: nspatch
-	pod2man nspatch >nspatch.1
+.pod.txt:
+	pod2text $< >$@
 
-nspatch.txt: nspatch
-	pod2text nspatch >nspatch.txt
-
-nspatch.html: nspatch
-	pod2html nspatch | sed -f fixhtml.sed >nspatch.html
-	rm pod2htm?.tmp
-
-README.txt: README.pod
-	pod2text README.pod >README.txt
-
-README.html: README.pod
-	pod2html README.pod | sed -f fixhtml.sed >README.html
+.pod.html:
+	pod2html $< | sed -f fixhtml.sed >$@
 	rm pod2htm?.tmp
 
 release: ${DOCS}
@@ -63,7 +52,7 @@ upload:
 	git push --tags dotat master
 	git push --tags csx master
 	ln -sf README.html index.html
-	rsync -ilt index.html README.html nsdiff.html nspatch.html nsdiff \
+	rsync -ilt ${htmlfiles} nsdiff \
 		*.tar.xz *.tar.gz *.zip \
 		chiark:public-html/prog/nsdiff/
 	cp nsdiff /home/uxsup/fanf2/public_html/hermes/conf/bind/bin/
