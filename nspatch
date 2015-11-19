@@ -39,6 +39,7 @@ version if $opt{V};
 exec "perldoc -F $0" if $opt{h};
 $opt{r} //= 2;
 usage unless $opt{r} =~ m{^\d+$};
+usage unless 1 == grep m{^--$}, @ARGV;
 
 my @nsdiff = ('nsdiff', '-v', $opt{v} ? 'qr' : '');
 while (@ARGV) {
