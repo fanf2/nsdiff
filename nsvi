@@ -213,7 +213,7 @@ otherwise C<$EDITOR>, otherwise B<vi>.
 
 =head1 VERSION
 
-  This is nsvi-1.71 <http://dotat.at/prog/nsdiff/>
+  This is nsvi-1.72 <http://dotat.at/prog/nsdiff/>
 
   Written by Tony Finch <fanf2@cam.ac.uk> <dot@dotat.at>
   at Cambridge University Information Services.
