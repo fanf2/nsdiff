@@ -225,7 +225,7 @@ nsdiff - create "nsupdate" script from DNS zone file differences
 
 nsdiff [B<-hV>] [B<-b> I<address>] [B<-k> I<keyfile>] [B<-y> [I<hmac>:]I<name>:I<key>]
        [B<-0>|B<-1>] [B<-q>|B<-v> [q][r]] [B<-cdD>] [B<-i> I<regex>] [B<-S> I<mode>|I<num>]
-       [B<-u>] [B<-s> I<server>] [B<-m> I<server>] <I<zone>> [I<old>] [I<new>]
+       [B<-u> I<server>] [B<-s> I<server>] [B<-m> I<server>] <I<zone>> [I<old>] [I<new>]
 
 =head1 DESCRIPTION
 
@@ -323,10 +323,11 @@ incremented. Serial number wrap-around is not supported.
 Quiet / quick check. Output is suppressed unless the zones differ, in
 which case a short note is printed instead of an B<nsupdate> script.
 
-=item B<-u>
+=item B<-u> I<server>[#I<port>]
 
-Tell B<nsupdate> to send the update message to the server specified in the
-B<-s> option.
+Tell B<nsupdate> to send the update message to the server specified in
+this option or, if the provided value is '-', to the server specified in
+the B<-s> option.
 
 =item B<-v> [q][r]
 
