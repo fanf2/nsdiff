@@ -30,14 +30,15 @@ nsvi options:
   -v                  turn on verbose output
   -01cdD              nsdiff options
   -S num|mode         SOA serial number or mode
-  -s server[#port]    where to AXFR and UPDATE the zone
+  -s server[#port]    where to AXFR and eventually UPDATE the zone
+  -t server[#port]    where to UPDATE the zone
   -k keyfile          AXFR and UPDATE TSIG key
   -y [hmac:]name:key  AXFR and UPDATE TSIG key
 EOF
     exit 1;
 }
 my %opt;
-usage unless getopts '-hV01cdDk:s:S:vy:', \%opt;
+usage unless getopts '-hV01cdDk:s:S:t:vy:', \%opt;
 version if $opt{V};
 exec "perldoc -F $0" if $opt{h};
 usage if @ARGV != 1;
@@ -61,7 +62,8 @@ push @nsdiff, map "-$_",
     grep $opt{$_}, qw{0 1 c d D};
 push @nsdiff, map "-$_$opt{$_}",
     grep $opt{$_}, qw{k s S v y};
-push @nsdiff, "-u" if $opt{s};
+push @nsdiff, "-u $opt{t}" if $opt{t};
+push @nsdiff, "-u -" if $opt{s} && !$opt{t};
 
 my @nsupdate = qw{nsupdate};
 push @nsupdate, map "-$_$opt{$_}",
