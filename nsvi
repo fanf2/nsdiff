@@ -139,7 +139,7 @@ nsvi - transfer a zone, edit it, then upload the edits
 =head1 SYNOPSIS
 
 nsvi [B<-01cdDhvV>] [B<-k> I<keyfile>] [B<-y> [I<hmac>:]I<name>:I<key>]
-     [B<-S> I<mode>|I<num>] [B<-s> I<server>] <I<zone>>
+     [B<-S> I<mode>|I<num>] [B<-s> I<server>] [B<-t> I<server>] <I<zone>>
 
 =head1 DESCRIPTION
 
@@ -185,6 +185,10 @@ or IP address, optionally followed by a "#" and the port number.
 If you do not use the B<-s> option, the zone will be transferred
 from I<localhost>, and B<nsvi> will use B<nsupdate> B<-l> to update
 the zone.
+
+=item B<-t> I<server>[#I<port>]
+
+Send the update request to the server given in this option instead of the one given in B<-s>.
 
 =item B<-k> I<keyfile>
 
