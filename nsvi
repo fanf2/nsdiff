@@ -25,9 +25,9 @@ usage: nsvi [options] <zone>
   Transfer a zone from its server, edit it, then
   upload the edits using `nsdiff` and `nsupdate`.
 nsvi options:
-  -i                  interactive mode
   -h                  display full documentation
   -V                  display version information
+  -n                  interactive confirmation
   -v                  turn on verbose output
   -01cdD              nsdiff options
   -S num|mode         SOA serial number or mode
@@ -38,7 +38,7 @@ EOF
     exit 1;
 }
 my %opt;
-usage unless getopts '-hV01cdDik:s:S:vy:', \%opt;
+usage unless getopts '-hV01cdDk:ns:S:vy:', \%opt;
 version if $opt{V};
 exec "perldoc -F $0" if $opt{h};
 usage if @ARGV != 1;
@@ -102,7 +102,7 @@ sub getch {
 
 sub retry {
     wail shift;
-    warn "re-edit and try again? (Y/n) ";
+    warn "re-edit and try again? (y/N) ";
     next RETRY if getch =~ m{[Yy\n]};
     exit 1;
 }
@@ -118,13 +118,11 @@ RETRY: for (;;) {
     }
     retry "failed to @nsdiff $zone $fn"
 	unless $diff and $? == 256;
-    if ($opt{i}) {
-        print "$diff\n";
-        print "are you sure to push this diff ? (y/N) ";
-        if (getch =~ m{[Nn\n]}) {
-            wail "quit";
-            exit 0;
-        }
+    if ($opt{n}) {
+	print "$diff\n";
+	print "make update, edit again, or quit? (u/e/Q) ";
+	next RETRY if getch =~ m{[EeRr\n]};
+	exit 1 unless getch =~ m{[UuYy\n]};
     }
     open my $ph, '|-', @nsupdate
 	or retry "pipe to @nsupdate: $!";
@@ -164,21 +162,25 @@ Most B<nsvi> options are passed to B<nsdiff> and some to B<nsupdate>.
 
 =over
 
-=item B<-i>
-
-Interactive mode.
-
 =item B<-h>
 
 Display this documentation.
+
+=item B<-V>
+
+Display version information.
 
 =item B<-v>
 
 Verbose mode.
 
-=item B<-V>
+=item B<-n>
 
-Display version information.
+Interactive confirmation.
+
+When you quit the editor, you will be shown the changes, then asked
+whether to make the update (press B<U> or B<Y>), edit again (press
+B<E> or B<R>), or quit (press another key).
 
 =item B<-01cdD>
 
