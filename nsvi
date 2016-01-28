@@ -25,6 +25,7 @@ usage: nsvi [options] <zone>
   Transfer a zone from its server, edit it, then
   upload the edits using `nsdiff` and `nsupdate`.
 nsvi options:
+  -i                  interactive mode
   -h                  display full documentation
   -V                  display version information
   -v                  turn on verbose output
@@ -37,7 +38,7 @@ EOF
     exit 1;
 }
 my %opt;
-usage unless getopts '-hV01cdDk:s:S:vy:', \%opt;
+usage unless getopts '-hV01cdDik:s:S:vy:', \%opt;
 version if $opt{V};
 exec "perldoc -F $0" if $opt{h};
 usage if @ARGV != 1;
@@ -117,6 +118,14 @@ RETRY: for (;;) {
     }
     retry "failed to @nsdiff $zone $fn"
 	unless $diff and $? == 256;
+    if ($opt{i}) {
+        print "$diff\n";
+        print "are you sure to push this diff ? (y/N) ";
+        if (getch =~ m{[Nn\n]}) {
+            wail "quit";
+            exit 0;
+        }
+    }
     open my $ph, '|-', @nsupdate
 	or retry "pipe to @nsupdate: $!";
     print $ph $diff;
@@ -154,6 +163,10 @@ adjust the SOA serial number.
 Most B<nsvi> options are passed to B<nsdiff> and some to B<nsupdate>.
 
 =over
+
+=item B<-i>
+
+Interactive mode.
 
 =item B<-h>
 
