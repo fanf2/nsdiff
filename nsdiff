@@ -485,11 +485,7 @@ prerequisite checks to ensure that the zone has not changed while it is
 running. This can happen even in simple setups if B<named> happens to be
 re-signing the zone at the time you make an update. Unfortunately the DNS
 update protocol does not allow for good error reporting when a prerequisite
-check fails. You can use the following script to cope with this problem:
-
-  while ! nsdiff -q $zone $source
-  do nsdiff $zone $source | nsupdate -l
-  done
+check fails. You can use B<nspatch> to cope with this problem.
 
 =head1 BUGS
 
