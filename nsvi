@@ -235,6 +235,10 @@ otherwise C<$EDITOR>, otherwise B<vi>.
   You may do anything with this. It has no warranty.
   <http://creativecommons.org/publicdomain/zero/1.0/>
 
+=head1 ACKNOWLEDGMENTS
+
+Thanks to Tristan Le Guern for the B<-n> option.
+
 =head1 SEE ALSO
 
 nsdiff(1), nsupdate(1), dig(1).
