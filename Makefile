@@ -47,7 +47,7 @@ ${podlinks}:
 release: ${DOCS}
 	./release.sh ${DOCS}
 
-upload:
+upload: all
 	git push --tags github master
 	git push --tags dotat master
 	git push --tags csx master
