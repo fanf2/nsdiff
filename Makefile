@@ -41,7 +41,7 @@ ${podlinks}:
 	pod2text $< >$@
 
 .pod.html:
-	pod2html $< | sed -f fixhtml.sed >$@
+	pod2html --noindex $< >$@
 	rm pod2htm?.tmp
 
 release: ${DOCS}
