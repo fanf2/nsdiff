@@ -137,8 +137,13 @@ my ($newsoa,$new) = (@ARGV < 1)
                   ? axfrzone $zone, $opt{m}
                   : loadzone $zone, shift;
 
-# The serial number in the update might depend on the new SOA serial number.
+# Does the SOA need to be updated?
+$soa =~ $soare;
+my $oldserial = $3;
+my $oldsoa = "$1 $2 $4";
 $newsoa =~ $soare;
+my $upsoa = $oldserial < $3 || $oldsoa ne "$1 $2 $4";
+# The serial number in the update might depend on the new SOA serial number.
 my $soamin = $soafun->($3);
 
 # Remove unchanged RRs, and save each name's deletions and additions.
@@ -184,7 +189,7 @@ for my $owner (keys %add) {
     emit;
 }
 
-my $status = @script ? 1 : 0;
+my $status = ($upsoa or @script) ? 1 : 0;
 if ($quiet) {
     wail "$zone has changes" if $status;
     exit $status;
@@ -195,11 +200,13 @@ if ($quiet) {
 # Use a prerequisite based on the SOA record to catch races.
 
 my $maxlen = 65536;
-while (@script) {
+while ($upsoa or @script) {
     my ($length,$i) = (0,0);
     $length += length $script[$i++] while $length < $maxlen and $i < @script;
     my @batch = splice @script, 0, $length < $maxlen ? $i : $i - 1;
-    fail "update does not fit in packet" if @batch == 0 or $opt{1} and @script != 0;
+    fail "update does not fit in packet"
+	if not $upsoa and @batch == 0
+	or $opt{1} and @script != 0;
     print "server $opt{s}\n" if $opt{u};
     $soa =~ $soare;
     print "prereq yxrrset $zone $2 $3 $4";
@@ -210,6 +217,7 @@ while (@script) {
     print "show\n" if $verbosity =~ m{q};
     print "send\n";
     print "answer\n" if $verbosity =~ m{r};
+    undef $upsoa;
 }
 
 exit $status;
@@ -507,9 +515,9 @@ because it isn't possible to delete all a zone's name servers.
 =head1 ACKNOWLEDGMENTS
 
 Thanks to Mike Bristow, Piete Brooks (University of Cambridge Computer
-Laboratory), Terry Burton (University of Leicester), Mohamad Shidiq
-Purnama (PANDI), and Jordan Rieger (webnames.ca) for providing useful
-feedback.
+Laboratory), Terry Burton (University of Leicester), JP Mens, Mohamad
+Shidiq Purnama (PANDI), and Jordan Rieger (webnames.ca) for providing
+useful feedback.
 
 =head1 SEE ALSO
 
