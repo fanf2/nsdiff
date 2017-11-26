@@ -12,6 +12,12 @@ checks and reports errors in a manner suitable for running from B<cron>.
 
 The B<nsvi> script makes it easy to edit a dynamic zone.
 
+=over
+
+I<I've fallen in <3 with nsdiff/nsvi> - JP Mens
+
+=back
+
 If you use BIND 9.7 or 9.8, you can use B<nsdiff> as an alternative
 to the DNSSEC C<inline-signing> feature which appeared in BIND 9.9.
 The server updates the DNSSEC records dynamically, but you can
