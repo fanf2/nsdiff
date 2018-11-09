@@ -252,6 +252,13 @@ is missing it will get the server from the zone's SOA MNAME field. If both
 F<old> and F<new> files are not specified, B<nsdiff> will transfer the new
 version of the zone from the server given by the B<-m> option.
 
+The SOA serial number has special handling: any difference between the
+F<old> and F<new> serial numbers is ignored, because background DNSSEC
+signing activity can increment the serial number unpredictably. When
+the zones differ, B<nsdiff> sets the serial number according to the
+B<-S> option, and it uses the F<old> serial number to protect against
+conflicting updates.
+
 =head1 OPTIONS
 
 =over
@@ -515,7 +522,8 @@ because it isn't possible to delete all a zone's name servers.
 =head1 ACKNOWLEDGMENTS
 
 Thanks to Mike Bristow, Piete Brooks (University of Cambridge Computer
-Laboratory), Terry Burton (University of Leicester), JP Mens, Mohamad
+Laboratory), Terry Burton (University of Leicester), Owen Dunn
+(University of Cambridge Faculty of Mathematics), JP Mens, Mohamad
 Shidiq Purnama (PANDI), and Jordan Rieger (webnames.ca) for providing
 useful feedback.
 
