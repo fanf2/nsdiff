@@ -34,6 +34,7 @@ options:
   -0                  allow a domain's updates to span packets
   -1                  abort if update doesn't fit in one packet
   -c                  compare records case-insensitively
+  -C                  do not ignore CDS/CDNSKEY records
   -d                  ignore DS records
   -D                  do not ignore DNSKEY records
   -i regex            ignore records matching the pattern
@@ -50,7 +51,7 @@ EOF
     exit 2;
 }
 my %opt;
-usage unless getopts '-hV01cdDi:m:s:S:quv:b:k:y:', \%opt;
+usage unless getopts '-hV01cCdDi:m:s:S:quv:b:k:y:', \%opt;
 version if $opt{V};
 exec "perldoc -F $0" if $opt{h};
 usage if @ARGV < 1 || @ARGV > 3;
@@ -75,6 +76,7 @@ my $verbosity = exists $opt{v} ? $opt{v} : $quiet ? '' : 'r';
 $opt{$_} and $opt{$_} =~ s{#}{ } for qw{ s m }; # for nsupdate server command
 
 my $secRRtypes = qr{NSEC|NSEC3|NSEC3PARAM|RRSIG|TYPE65534};
+$secRRtypes = qr{$secRRtypes|CDS|CDNSKEY} unless $opt{C};
 $secRRtypes = qr{$secRRtypes|DNSKEY} unless $opt{D};
 $secRRtypes = qr{$secRRtypes|DS} if $opt{d};
 
@@ -279,6 +281,14 @@ multiple requests.
 =item B<-1>
 
 Abort if update does not fit in one request packet.
+
+=item B<-C>
+
+Do not ignore CDS or CDNSKEY records. They are normally managed by
+B<dnssec-settime> with the C<-P sync> and C<-D sync> options, but you
+can use this option if you are managing them some other way. In that
+case, your un-signed zone file should include the complete CDS and/or
+CDNSKEY RRset(s); if not, B<nsdiff> will delete the records.
 
 =item B<-c>
 
