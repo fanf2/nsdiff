@@ -55,5 +55,4 @@ upload: all
 	rsync -ilt ${htmlfiles} nsdiff \
 		*.tar.xz *.tar.gz *.zip \
 		chiark:public-html/prog/nsdiff/
-	scp nsdiff ent:~/public_html/hermes/conf/bind/bin
 	rm -f index.html
