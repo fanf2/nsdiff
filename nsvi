@@ -29,7 +29,7 @@ nsvi options:
   -V                  display version information
   -n                  interactive confirmation
   -v                  turn on verbose output
-  -01cdD              nsdiff options
+  -01cCdD             nsdiff options
   -S num|mode         SOA serial number or mode
   -s server[#port]    where to AXFR and UPDATE the zone
   -k keyfile          AXFR and UPDATE TSIG key
@@ -38,7 +38,7 @@ EOF
     exit 1;
 }
 my %opt;
-usage unless getopts '-hV01cdDk:ns:S:vy:', \%opt;
+usage unless getopts '-hV01cCdDk:ns:S:vy:', \%opt;
 version if $opt{V};
 exec "perldoc -F $0" if $opt{h};
 usage if @ARGV != 1;
@@ -70,6 +70,7 @@ push @nsupdate, map "-$_$opt{$_}",
 push @nsupdate, "-l" unless $opt{s};
 
 my $secRRtypes = qr{NSEC|NSEC3|NSEC3PARAM|RRSIG|TYPE65534};
+$secRRtypes = qr{$secRRtypes|CDS|CDNSKEY} unless $opt{C};
 $secRRtypes = qr{$secRRtypes|DNSKEY} unless $opt{D};
 $secRRtypes = qr{$secRRtypes|DS} if $opt{d};
 
@@ -81,6 +82,7 @@ my $rdata = qr{(?:[^()\n]+
                  )+$nl}x;
 my $dnssec = qr{(?m)^\S+\s+\d+\s+IN\s+($secRRtypes)\s+$rdata};
 
+print "@dig axfr $zone" if $opt{v};
 my $axfr = qx{@dig axfr $zone};
 fail "failed to @dig axfr $zone" unless $axfr and $? == 0;
 
@@ -102,8 +104,9 @@ sub getch {
 
 sub retry {
     wail shift;
-    warn "re-edit and try again? (y/N) ";
+    print STDERR "re-edit and try again? (y/N)";
     next RETRY if getch =~ m{[Yy\n]};
+    print STDERR "\n";
     exit 1;
 }
 
@@ -111,6 +114,7 @@ RETRY: for (;;) {
     system "$vi $fn";
     fail "failed to $vi $fn" unless $? == 0;
 
+    print "@nsdiff $zone $fn" if $opt{v};
     my $diff = qx{@nsdiff $zone $fn};
     if ($? == 0) {
 	wail "no change";
@@ -143,7 +147,7 @@ nsvi - transfer a zone, edit it, then upload the edits
 
 =head1 SYNOPSIS
 
-nsvi [B<-01cdDhvV>] [B<-k> I<keyfile>] [B<-y> [I<hmac>:]I<name>:I<key>]
+nsvi [B<-01cCdDhvV>] [B<-k> I<keyfile>] [B<-y> [I<hmac>:]I<name>:I<key>]
      [B<-S> I<mode>|I<num>] [B<-s> I<server>] <I<zone>>
 
 =head1 DESCRIPTION
@@ -182,7 +186,7 @@ When you quit the editor, you will be shown the changes, then asked
 whether to make the update (press B<U> or B<Y>), edit again (press
 B<E> or B<R>), or quit (press another key).
 
-=item B<-01cdD>
+=item B<-01cCdD>
 
 =item B<-S> B<mode>|I<num>
 
