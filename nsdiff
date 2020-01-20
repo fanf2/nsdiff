@@ -233,7 +233,7 @@ nsdiff - create "nsupdate" script from DNS zone file differences
 =head1 SYNOPSIS
 
 nsdiff [B<-hV>] [B<-b> I<address>] [B<-k> I<keyfile>] [B<-y> [I<hmac>:]I<name>:I<key>]
-       [B<-0>|B<-1>] [B<-q>|B<-v> [q][r]] [B<-cdD>] [B<-i> I<regex>] [B<-S> I<mode>|I<num>]
+       [B<-0>|B<-1>] [B<-q>|B<-v> [q][r]] [B<-cCdD>] [B<-i> I<regex>] [B<-S> I<mode>|I<num>]
        [B<-u>] [B<-s> I<server>] [B<-m> I<server>] <I<zone>> [I<old>] [I<new>]
 
 =head1 DESCRIPTION
