@@ -69,7 +69,7 @@ push @nsupdate, map "-$_$opt{$_}",
     grep $opt{$_}, qw{k y};
 push @nsupdate, "-l" unless $opt{s};
 
-my $secRRtypes = qr{NSEC|NSEC3|NSEC3PARAM|RRSIG|TYPE65534};
+my $secRRtypes = qr{NSEC|NSEC3|NSEC3PARAM|RRSIG};
 $secRRtypes = qr{$secRRtypes|CDS|CDNSKEY} unless $opt{C};
 $secRRtypes = qr{$secRRtypes|DNSKEY} unless $opt{D};
 $secRRtypes = qr{$secRRtypes|DS} if $opt{d};
