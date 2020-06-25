@@ -80,11 +80,12 @@ $secRRtypes = qr{$secRRtypes|CDS|CDNSKEY} unless $opt{C};
 $secRRtypes = qr{$secRRtypes|DNSKEY} unless $opt{D};
 $secRRtypes = qr{$secRRtypes|DS} if $opt{d};
 
-my $soamode = $opt{S} || 'master';
+my $soamode = $opt{S} || 'file';
 my $soafun = $soamode =~ m{^[0-9]+$} ?
              sub { return $soamode } : {
    serial => sub { return 0 },
-   master => sub { return $_[0] },
+     file => sub { return $_[0] },
+   master => sub { return $_[0] }, # compat
      unix => sub { return time },
      date => sub { return strftime "%Y%m%d00", gmtime },
 }->{$soamode} or usage;
@@ -110,10 +111,10 @@ sub cleanzone {
 
 sub axfrzone {
     my $zone = shift;
-    my $master = shift;
-    wail "loading zone $zone via AXFR from $master" unless $quiet;
-    $master =~ s{^(.*) (\d+)$}{-p $2 \@$1} or $master = '@'.$master;
-    return cleanzone qx{dig @digopts $master +noadditional axfr $zone |
+    my $primary = shift;
+    wail "loading zone $zone via AXFR from $primary" unless $quiet;
+    $primary =~ s{^(.*) (\d+)$}{-p $2 \@$1} or $primary = '@'.$primary;
+    return cleanzone qx{dig @digopts $primary +noadditional axfr $zone |
                         $compilezone $zone /dev/stdin $quiet};
 }
 
@@ -126,10 +127,10 @@ sub loadzone {
 sub mname {
     my $zone = shift;
     my @soa = split ' ', qx{dig +short soa $zone};
-    my $master = $soa[0];
+    my $primary = $soa[0];
     fail "could not get SOA record for $zone"
-        unless defined $master and $master =~ m{^$hostname$};
-    return $master;
+        unless defined $primary and $primary =~ m{^$hostname$};
+    return $primary;
 }
 
 my ($soa,$old) = (@ARGV < 2)
@@ -243,7 +244,7 @@ zone, and outputs the differences as a script for use by BIND's
 B<nsupdate> program. It ignores DNSSEC-related differences, assuming
 that the name server has sole control over zone keys and signatures.
 
-The input files are typically in standard DNS master file format. They
+The input files are typically in standard DNS zone file format. They
 are passed through BIND's B<named-compilezone> program to convert them
 to canonical form, so they may also be in BIND's "raw" format and may
 have F<.jnl> update journals.
@@ -323,7 +324,7 @@ unwanted RRs.
 =item B<-m> I<server>[#I<port>]
 
 Transfer the new version of the zone from the server given in this option,
-for example, a back-end hidden master server. You can specify the server
+for example, a back-end hidden primary server. You can specify the server
 host name or IP address, optionally followed by a "#" and the port number.
 
 =item B<-s> I<server>[#I<port>]
@@ -331,9 +332,9 @@ host name or IP address, optionally followed by a "#" and the port number.
 Transfer the old version of the zone from the server given in this option,
 using the same syntax as the B<-m> option.
 
-=item B<-S> B<date>|B<master>|B<serial>|B<unix>|I<num>
+=item B<-S> B<date>|B<file>|B<serial>|B<unix>|I<num>
 
-Choose the SOA serial number update mode: the default I<master> takes
+Choose the SOA serial number update mode: the default I<file> takes
 the serial number from the I<new> input zone; I<date> uses a number of
 the form YYYYMMDDnn and allows for up to 100 updates per day;
 I<serial> just increments the serial number in the I<old> input zone;
@@ -424,7 +425,7 @@ as well as zone source files.
 
 =item C<need -m option when there are no input files>
 
-The B<-m> I<master> option is required when there are no file arguments,
+The B<-m> I<server> option is required when there are no file arguments,
 and ignored otherwise.
 
 =item C<loading zone I<E<lt>zoneE<gt>> via AXFR from I<server>>
@@ -441,11 +442,11 @@ B<named-compilezone>, to explain the latter's diagnostics.
 It is easiest to deploy DNSSEC if you allow B<named> to manage zone keys
 and signatures automatically, and feed in changes to zones using DNS
 update requests. However this is very different from the traditional way
-of manually maintaining zones in standard master file format. The
+of manually maintaining zones in standard DNS zone file format. The
 B<nsdiff> program bridges the gap between the two operational styles.
 
 To support this workflow you need BIND-9.7 or newer. You will continue
-maintaining your zone master file C<$sourcefile> as before, but it is no
+maintaining your zone file C<$sourcefile> as before, but it is no
 longer the same as the C<$workingfile> used by B<named>. After you make
 a change, instead of using C<rndc reload $zone>, run C<nsdiff $zone
 $sourcefile | nsupdate -l>.
@@ -453,7 +454,7 @@ $sourcefile | nsupdate -l>.
 Configure your zone as follows, to support DNSSEC and local dynamic updates:
 
   zone $zone {
-    type master;
+    type primary;
     file "$workingfile";
     auto-dnssec maintain;
     update-policy local;
@@ -467,25 +468,25 @@ and run these commands:
 
 =head1 EXAMPLE - bump-in-the-wire signing
 
-A common arrangement for DNSSEC is to have a master server that is
+A common arrangement for DNSSEC is to have a primary server that is
 oblivious to DNSSEC, a signing server which transfers the zone from the
-master and adds the DNSSEC records, and a number of slave servers which
-transfer the zone from the signer and which are the public authoritative
-servers.
+primary and adds the DNSSEC records, and a number of secondary servers
+which transfer the zone from the signer and which are the public
+authoritative servers.
 
 You can implement this with B<nsdiff>, which handles the transfer of the
-zone from the master to the signer. No modifications to the master are
+zone from the primary to the signer. No modifications to the primary are
 necessary. You set up the signer as in the previous section. To transfer
-changes from the master to the signer, run the following on the signer:
+changes from the primary to the signer, run the following on the signer:
 
-  nsdiff -m $master -s $signer $zone | nsupdate -l
+  nsdiff -m $primary -s $signer $zone | nsupdate -l
 
 =head1 EXAMPLE - dynamic reverse DNS
 
 You have a reverse zone such as C<2.0.192.in-addr.arpa> which is
 mostly managed dynamically by a DHCP server, but which also has some
 static records (for network equipment, say). You can maintain the
-static part in a master file and feed any changes into the live
+static part in a DNS zone file and feed any changes into the live
 dynamic zone by telling B<nsdiff> to ignore the dynamic entries. Say
 all the static equipment has IP addresses between 192.0.2.250 and
 192.0.2.255, then you can run the command pipeline:
