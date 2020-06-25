@@ -62,6 +62,7 @@ push @nsdiff, map "-$_",
     grep $opt{$_}, qw{0 1 c d D};
 push @nsdiff, map "-$_$opt{$_}",
     grep $opt{$_}, qw{k s S v y};
+push @nsdiff, "-slocalhost" unless $opt{s};
 push @nsdiff, "-u" if $opt{s};
 
 my @nsupdate = qw{nsupdate};
