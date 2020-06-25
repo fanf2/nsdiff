@@ -104,9 +104,9 @@ sub getch {
 
 sub retry {
     wail shift;
-    print STDERR "re-edit and try again? (y/N)";
-    next RETRY if getch =~ m{[Yy\n]};
-    print STDERR "\n";
+    print "re-edit and try again? (y/N)";
+    next RETRY if getch =~ m{[Yy]};
+    print "\n";
     exit 1;
 }
 
@@ -125,8 +125,8 @@ RETRY: for (;;) {
     if ($opt{n}) {
 	print "$diff\n";
 	print "make update, edit again, or quit? (u/e/Q) ";
-	next RETRY if getch =~ m{[EeRr\n]};
-	exit 1 unless getch =~ m{[UuYy\n]};
+	next RETRY if getch =~ m{[EeRr]};
+	exit 1 unless getch =~ m{[UuYy]};
     }
     open my $ph, '|-', @nsupdate
 	or retry "pipe to @nsupdate: $!";
@@ -136,7 +136,7 @@ RETRY: for (;;) {
     retry "failed to @nsupdate";
 }
 
-warn "done";
+print "done\n" if $opt{v};
 exit 0;
 
 __END__
