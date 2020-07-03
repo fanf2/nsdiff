@@ -43,7 +43,9 @@ upload:: html
 	git push --tags github trunk
 	git push --tags dotat trunk
 	git push --tags csx trunk
-	cp nsdiff DNS-nsdiff-*.tar.gz web/.
+	[ -f DNS-nsdiff-*.tar.gz ] \
+	&& cp DNS-nsdiff-*.tar.gz web/.
+	cp nsdiff web/.
 	rsync -ilt web/nsdiff web/*.html web/*.tar.gz \
 		chiark:public-html/prog/nsdiff/
 
