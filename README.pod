@@ -35,6 +35,17 @@ To run nsdiff you need perl-5.10 or newer, and BIND version 9.7 or
 newer, specifically the B<dig>, B<named-compilezone>, and B<nsupdate>
 utilities.
 
+=head2 Install
+
+To install, run:
+
+    perl Makefile.PL
+    make install
+
+To install in a particular place, use something like
+
+    perl Makefile.pl PREFIX=${HOME}
+
 =head2 Downloads
 
 =over
@@ -53,21 +64,13 @@ Read the nsvi manual: L<https://dotat.at/prog/nsdiff/nsvi.html>
 
 Download the bare nsdiff perl source: L<https://dotat.at/prog/nsdiff/nsdiff>
 
-Download the full source archives:
+Download the source distribution:
 
 =over
 
 =item
 
-L<https://dotat.at/prog/nsdiff/nsdiff-1.80.tar.xz>
-
-=item
-
-L<https://dotat.at/prog/nsdiff/nsdiff-1.80.tar.gz>
-
-=item
-
-L<https://dotat.at/prog/nsdiff/nsdiff-1.80.zip>
+L<https://dotat.at/prog/nsdiff/DNS-nsdiff-1.80.tar.gz>
 
 =back
 

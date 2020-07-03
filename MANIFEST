@@ -1,0 +1,8 @@
+MANIFEST
+MANIFEST.SKIP
+Makefile.PL
+README.pod
+lib/DNS/nsdiff.pm
+nsdiff
+nspatch
+nsvi
