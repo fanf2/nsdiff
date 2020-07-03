@@ -7,7 +7,7 @@ and outputs the differences as a script for use by BIND's B<nsupdate>
 program. It provides a bridge between static zone files and dynamic
 updates.
 
-The B<nspatch> script is a wrapper around C<`nsdiff | nsupdate`> that
+The B<nspatch> script is a wrapper around C<nsdiff | nsupdate> that
 checks and reports errors in a manner suitable for running from B<cron>.
 
 The B<nsvi> script makes it easy to edit a dynamic zone.
