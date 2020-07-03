@@ -59,15 +59,15 @@ Download the full source archives:
 
 =item
 
-L<https://dotat.at/prog/nsdiff/nsdiff-1.79.tar.xz>
+L<https://dotat.at/prog/nsdiff/nsdiff-1.80.tar.xz>
 
 =item
 
-L<https://dotat.at/prog/nsdiff/nsdiff-1.79.tar.gz>
+L<https://dotat.at/prog/nsdiff/nsdiff-1.80.tar.gz>
 
 =item
 
-L<https://dotat.at/prog/nsdiff/nsdiff-1.79.zip>
+L<https://dotat.at/prog/nsdiff/nsdiff-1.80.zip>
 
 =back
 
