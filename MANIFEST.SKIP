@@ -1,5 +1,6 @@
 .git
 reversion.sh
+web
 Makefile
 MYMETA.*
 blib
