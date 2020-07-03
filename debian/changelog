@@ -1,4 +1,4 @@
-libdns-nsdiff-perl (1.81) unstable; urgency=low
+libdns-nsdiff-perl (1.82) unstable; urgency=low
 
   * Initial Debian package.
 
