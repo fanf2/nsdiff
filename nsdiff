@@ -541,6 +541,7 @@ useful feedback.
 
 =head1 SEE ALSO
 
-nspatch(1), nsupdate(1), dig(1), perlre(1), named(8), named-compilezone(8)
+nspatch(1), nsupdate(1), nsvi(1), dig(1),
+named(8), named-compilezone(8), perlre(1)
 
 =cut
