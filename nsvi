@@ -142,6 +142,8 @@ exit 0;
 
 __END__
 
+=encoding utf8
+
 =head1 NAME
 
 nsvi - transfer a zone, edit it, then upload the edits
@@ -242,7 +244,8 @@ otherwise C<$EDITOR>, otherwise B<vi>.
 
 =head1 ACKNOWLEDGMENTS
 
-Thanks to Tristan Le Guern for the B<-n> option.
+Thanks to Tristan Le Guern for the B<-n> option. Thanks to Petr Menšík
+(Red Hat) for providing useful feedback.
 
 =head1 SEE ALSO
 
