@@ -11,7 +11,7 @@ WriteMakefile(
 	# to stop MakeMaker from installing the README as a man page
 	# we have to list the section 3 pages explicitly
 	MAN3PODS	=> {
-		'lib/DNS/nsdiff.pm' => 'blib/man3/DNS::nsdiff.3',
+		'lib/DNS/nsdiff.pm' => 'blib/man3/DNS::nsdiff.3pm',
 	    },
 
 	AUTHOR		=> 'Tony Finch <dot@dotat.at>',
@@ -39,15 +39,21 @@ html::
 	ln -sf README.html web/index.html
 	rm -f pod2htm?.tmp
 
+deb::
+	dpkg-buildpackage -uc -A
+	mv ../libdns-nsdiff-perl_* web/.
+	debian/rules clean
+
 upload:: html
 	git push --tags github trunk
 	git push --tags dotat trunk
 	git push --tags csx trunk
 	if [ -f DNS-nsdiff-*.tar.gz ]; \
-	then cp DNS-nsdiff-*.tar.gz web/.; \
+	then mv DNS-nsdiff-*.tar.gz web/.; \
 	fi
 	cp nsdiff web/.
 	rsync -ilt web/nsdiff web/*.html web/*.tar.gz \
+		web/libdns-nsdiff-perl_* \
 		chiark:public-html/prog/nsdiff/
 
 MAKE_FRAG

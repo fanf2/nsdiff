@@ -1,0 +1,5 @@
+libdns-nsdiff-perl (1.81) unstable; urgency=low
+
+  * Initial Debian package.
+
+ -- Tony Finch <dot@dotat.at>  Fri, 3 Jul 2020 23:24:31 +0100

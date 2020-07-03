@@ -1,0 +1,21 @@
+Source: libdns-nsdiff-perl
+Section: perl
+Priority: optional
+Maintainer: Tony Finch <dot@dotat.at>
+Build-Depends: debhelper (>= 9)
+Build-Depends-Indep: perl
+Standards-Version: 3.9.8
+Homepage: https://metacpan.org/release/DNS-nsdiff
+
+Package: libdns-nsdiff-perl
+Architecture: all
+Depends: ${misc:Depends}, ${perl:Depends}
+Description: create an 'nsupdate' script from DNS zone file differences
+ The nsdiff program examines the old and new versions of a DNS zone,
+ and outputs the differences as a script for use by BIND's nsupdate
+ program (in Debian's dnsutils package).
+ .
+ The nspatch script is a wrapper around `nsdiff | nsupdate` that
+ checks and reports errors in a manner suitable for running from cron.
+ .
+ The nsvi script makes it easy to edit a dynamic zone.

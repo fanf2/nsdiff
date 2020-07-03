@@ -1,0 +1,10 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Source: https://metacpan.org/release/DNS-nsdiff
+Upstream-Contact: Tony Finch <dot@dotat.at>
+Upstream-Name: DNS-nsdiff
+
+Files: *
+Copyright: 2011-2020 Tony Finch <dot@dotat.at>
+License: CC0
+ You may do anything with this. It has no warranty.
+ https://creativecommons.org/publicdomain/zero/1.0/
