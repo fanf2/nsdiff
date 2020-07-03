@@ -70,7 +70,7 @@ Download the source distribution:
 
 =item
 
-L<https://dotat.at/prog/nsdiff/DNS-nsdiff-1.80.tar.gz>
+L<https://dotat.at/prog/nsdiff/DNS-nsdiff-1.81.tar.gz>
 
 =back
 
