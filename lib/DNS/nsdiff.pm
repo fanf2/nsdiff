@@ -2,7 +2,7 @@
 
 package DNS::nsdiff;
 
-our $VERSION = 0.01;
+our $VERSION = "1.79";
 
 =head1 NAME
 
@@ -35,7 +35,7 @@ The B<nsvi> script makes it easy to edit a dynamic zone.
 
 =head1 VERSION
 
-  This is nsdiff-1.79 <https://dotat.at/prog/nsdiff/>
+  This is DNS::nsdiff-1.79 <https://dotat.at/prog/nsdiff/>
 
   Written by Tony Finch <fanf2@cam.ac.uk> <dot@dotat.at>
   at Cambridge University Information Services.

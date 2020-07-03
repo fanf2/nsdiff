@@ -1,24 +1,26 @@
 #!/bin/sh
 
 case $# in
-(0)	V=$(git describe --tags --dirty=.X)
-	N=${V#nsdiff-}
-	;;
 (1)	N=$1
-	V=nsdiff-$N
 	;;
-(*)	echo 1>&2 'usage: reversion.sh [number]'
+(2)	N=$2
+	;;
+(*)	echo 1>&2 'usage: reversion.sh [--commit] <number>'
 	exit 1
 	;;
 esac
 
-perl -pi -e 's{(ns(diff|patch|vi)-)\d\.\d\d(\.X)?}{${1}'$N'}' \
-	README.pod nsdiff nspatch nsvi
+perl -pi -e 's{(ns(diff|patch|vi)-)[0-9.]+[0-9]}{${1}'$N'}' \
+     README.pod nsdiff nspatch nsvi lib/DNS/nsdiff.pm
+
+perl -pi -e 's{(VERSION\s+=>?\s+)"[0-9.]+[0-9]"}{${1}"'$N'"}' \
+     Makefile.PL lib/DNS/nsdiff.pm
 
 case $# in
-(0)	git diff
+(1)	git diff
 	;;
-(1)	git commit -a -m $V
-	git tag $V
+(2)	V=nsdiff-$N
+	git commit -a -m $V
+	git tag -a -m $V $V
 	;;
 esac
