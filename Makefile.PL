@@ -41,7 +41,7 @@ html::
 
 deb::
 	dpkg-buildpackage -uc -A
-	mv ../libdns-nsdiff-perl_* web/.
+	mv ../nsdiff_* web/.
 	debian/rules clean
 
 upload:: html
@@ -52,8 +52,7 @@ upload:: html
 	then mv DNS-nsdiff-*.tar.gz web/.; \
 	fi
 	cp nsdiff web/.
-	rsync -ilt web/nsdiff web/*.html web/*.tar.gz \
-		web/libdns-nsdiff-perl_* \
+	rsync -ilt web/nsdiff web/*.html web/*.tar.gz web/nsdiff_* \
 		chiark:public-html/prog/nsdiff/
 
 MAKE_FRAG

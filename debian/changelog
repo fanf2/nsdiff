@@ -1,4 +1,10 @@
-libdns-nsdiff-perl (1.82) unstable; urgency=low
+nsdiff (1.82-1) unstable; urgency=low
+
+  * Better package name and more accurate dependencies.
+
+ -- Tony Finch <dot@dotat.at>  Sat, 4 Jul 2020 01:33:00 +0100
+
+nsdiff (1.82) unstable; urgency=low
 
   * Initial Debian package.
 

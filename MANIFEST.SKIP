@@ -2,7 +2,7 @@
 reversion.sh
 debian
 web
-Makefile
+Makefile$
 MYMETA.*
 blib
 .*~

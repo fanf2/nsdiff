@@ -1,15 +1,15 @@
-Source: libdns-nsdiff-perl
-Section: perl
+Source: nsdiff
+Section: net
 Priority: optional
 Maintainer: Tony Finch <dot@dotat.at>
 Build-Depends: debhelper (>= 9)
 Build-Depends-Indep: perl
 Standards-Version: 3.9.8
-Homepage: https://metacpan.org/release/DNS-nsdiff
+Homepage: https://dotat.at/prog/nsdiff/
 
-Package: libdns-nsdiff-perl
+Package: nsdiff
 Architecture: all
-Depends: ${misc:Depends}, ${perl:Depends}
+Depends: ${misc:Depends}, ${perl:Depends}, dnsutils
 Description: create an 'nsupdate' script from DNS zone file differences
  The nsdiff program examines the old and new versions of a DNS zone,
  and outputs the differences as a script for use by BIND's nsupdate
