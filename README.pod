@@ -92,10 +92,6 @@ L<https://dotat.at/cgi/git/nsdiff.git>
 
 L<https://github.com/fanf2/nsdiff.git>
 
-=item
-
-L<https://git.uis.cam.ac.uk/x/uis/ipreg/nsdiff.git>
-
 =back
 
 =back
