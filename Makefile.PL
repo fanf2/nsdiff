@@ -15,7 +15,7 @@ WriteMakefile(
 	    },
 
 	AUTHOR		=> 'Tony Finch <dot@dotat.at>',
-	LICENSE		=> 'cc0',
+	LICENSE		=> 'unrestricted', # cc0 not allowed by CPAN::Meta::Spec
 	MIN_PERL_VERSION=> '5.10.0',
 	META_MERGE	=> {
 		'meta-spec' => { version => 2 },
