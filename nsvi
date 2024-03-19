@@ -130,8 +130,9 @@ RETRY: for (;;) {
     if ($opt{n}) {
 	print "$diff\n";
 	print "make update, edit again, or quit? (u/e/Q) ";
-	next RETRY if getch =~ m{[EeRr]};
-	exit 1 unless getch =~ m{[UuYy]};
+	my $cmd = getch;
+	next RETRY if $cmd =~ m{[EeRr]};
+	exit 1 unless $cmd =~ m{[UuYy]};
     }
     open my $ph, '|-', @nsupdate
 	or retry "pipe to @nsupdate: $!";
