@@ -48,7 +48,7 @@ deb::
 
 upload:: html
 	git push --tags github trunk
-	git push --tags dotat trunk
+	git push --tags chiark trunk
 	if [ -f DNS-nsdiff-*.tar.gz ]; \
 	then mv DNS-nsdiff-*.tar.gz web/.; \
 	fi
