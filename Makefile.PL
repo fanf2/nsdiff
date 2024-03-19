@@ -34,6 +34,7 @@ WriteMakefile(
 sub MY::postamble {
 	return <<'MAKE_FRAG';
 html::
+	mkdir -p web
 	for f in nsdiff nspatch nsvi; \
 	do pod2html --noindex $$f >web/$$f.html; \
 	done
