@@ -5,6 +5,8 @@ DNS-nsdiff-*.tar.gz
 DNS-nsdiff-*.tar.xz
 DNS-nsdiff-*.zip
 MYMETA.*
+Makefile
 Makefile.old
+pm_to_blib
 blib
 web
