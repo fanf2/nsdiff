@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: 0BSD OR MIT-0
+
 use 5.10.0;
 use ExtUtils::MakeMaker;
 

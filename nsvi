@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# SPDX-License-Identifier: CC0-1.0
+# SPDX-License-Identifier: 0BSD OR MIT-0
 
 use warnings;
 use strict;
@@ -249,7 +249,6 @@ otherwise C<$EDITOR>, otherwise B<vi>.
   Written by Tony Finch <fanf2@cam.ac.uk> <dot@dotat.at>
   at Cambridge University Information Services.
   You may do anything with this. It has no warranty.
-  <https://creativecommons.org/publicdomain/zero/1.0/>
 
 =head1 ACKNOWLEDGMENTS
 

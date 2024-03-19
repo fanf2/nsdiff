@@ -4,7 +4,11 @@ Upstream-Contact: Tony Finch <dot@dotat.at>
 Upstream-Name: DNS-nsdiff
 
 Files: *
-Copyright: 2011-2020 Tony Finch <dot@dotat.at>
-License: CC0
- You may do anything with this. It has no warranty.
- https://creativecommons.org/publicdomain/zero/1.0/
+Copyright: 2011-2024 Tony Finch <dot@dotat.at>
+License:  0BSD OR MIT-0
+ Permission is hereby granted to use, copy, modify, and/or
+ distribute this software for any purpose with or without fee.
+
+ This software is provided 'as is', without warranty of any kind.
+ In no event shall the authors be liable for any damages arising
+ from the use of this software.

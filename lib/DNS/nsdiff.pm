@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: CC0-1.0
+# SPDX-License-Identifier: 0BSD OR MIT-0
 
 package DNS::nsdiff;
 
@@ -40,7 +40,6 @@ The B<nsvi> script makes it easy to edit a dynamic zone.
   Written by Tony Finch <fanf2@cam.ac.uk> <dot@dotat.at>
   at Cambridge University Information Services.
   You may do anything with this. It has no warranty.
-  <https://creativecommons.org/publicdomain/zero/1.0/>
 
 =head1 SEE ALSO
 
