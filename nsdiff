@@ -525,7 +525,7 @@ because it isn't possible to delete all a zone's name servers.
 
 =head1 VERSION
 
-  This is nsdiff-1.82 <https://dotat.at/prog/nsdiff/>
+  This is nsdiff-1.83 <https://dotat.at/prog/nsdiff/>
 
   Written by Tony Finch <fanf2@cam.ac.uk> <dot@dotat.at>
   at Cambridge University Information Services.

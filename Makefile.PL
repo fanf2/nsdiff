@@ -5,7 +5,7 @@ use ExtUtils::MakeMaker;
 
 WriteMakefile(
 	NAME		=> 'DNS::nsdiff',
-	VERSION		=> "1.82",
+	VERSION		=> "1.83",
 	ABSTRACT	=>
 	    "create an 'nsupdate' script from DNS zone file differences",
 	EXE_FILES	=> [qw[ nsdiff nspatch nsvi ]],
