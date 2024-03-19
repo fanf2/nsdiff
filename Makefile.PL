@@ -3,6 +3,12 @@
 use 5.10.0;
 use ExtUtils::MakeMaker;
 
+# suppress warning about the ExtUtils::MakeMaker bug
+# that we fixed with the MAN3PODS setting below
+$SIG{__WARN__} = sub {
+	print STDERR @_ unless "@_" eq "WARNING: Older versions of ExtUtils::MakeMaker may errantly install README.pod as part of this distribution. It is recommended to avoid using this path in CPAN modules.\n"
+};
+
 WriteMakefile(
 	NAME		=> 'DNS::nsdiff',
 	VERSION		=> "1.83",
