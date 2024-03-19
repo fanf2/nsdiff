@@ -54,7 +54,7 @@ EOF
 my %opt;
 usage unless getopts '-hV01cCdDi:m:s:S:quv:b:k:y:', \%opt;
 version if $opt{V};
-exec "perldoc -F $0" if $opt{h};
+exec "perldoc -oterm -F $0" if $opt{h};
 usage if @ARGV < 1 || @ARGV > 3;
 
 my @digopts;

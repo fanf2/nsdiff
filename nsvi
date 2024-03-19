@@ -42,7 +42,7 @@ EOF
 my %opt;
 usage unless getopts '-hV01cCdDgk:ns:S:vy:', \%opt;
 version if $opt{V};
-exec "perldoc -F $0" if $opt{h};
+exec "perldoc -oterm -F $0" if $opt{h};
 usage if @ARGV != 1;
 my $zone = shift;
 
