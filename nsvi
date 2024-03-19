@@ -100,18 +100,19 @@ close $fh;
 
 my $vi = $ENV{VISUAL} || $ENV{EDITOR} || "vi";
 
-sub getch {
+sub prompt {
+    print shift;
     system "stty -icanon";
-    sysread STDIN, my $ch, 1;
+    sysread STDIN, my $key, 1;
     system "stty icanon";
-    return $ch;
+    print "\n";
+    return $key;
 }
 
 sub retry {
     wail shift;
-    print "re-edit and try again? (y/N)";
-    next RETRY if getch =~ m{[Yy]};
-    print "\n";
+    my $key = prompt "re-edit and try again? (y/N) ";
+    next RETRY if $key =~ m{[Yy]};
     exit 1;
 }
 
@@ -129,10 +130,9 @@ RETRY: for (;;) {
 	unless $diff and $? == 256;
     if ($opt{n}) {
 	print "$diff\n";
-	print "make update, edit again, or quit? (u/e/Q) ";
-	my $cmd = getch;
-	next RETRY if $cmd =~ m{[EeRr]};
-	exit 1 unless $cmd =~ m{[UuYy]};
+	my $key = prompt "make update, edit again, or quit? (u/e/Q) ";
+	next RETRY if $key =~ m{[EeRr]};
+	exit 1 unless $key =~ m{[UuYy]};
     }
     open my $ph, '|-', @nsupdate
 	or retry "pipe to @nsupdate: $!";
@@ -254,8 +254,8 @@ otherwise C<$EDITOR>, otherwise B<vi>.
 =head1 ACKNOWLEDGMENTS
 
 Thanks to Tristan Le Guern for the B<-n> option and Mantas Mikulėnas
-for the B<-g> option. Thanks to Petr Menšík (Red Hat) for providing
-useful feedback.
+for the B<-g> option. Thanks to David McBride and Petr Menšík for
+providing useful feedback.
 
 =head1 SEE ALSO
 
