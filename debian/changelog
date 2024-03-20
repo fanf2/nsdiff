@@ -1,3 +1,15 @@
+nsdiff (1.85) unstable; urgency=low
+
+  * Change from CC0 to 0BSD OR MIT-0
+
+  * Fix interactive confirmation in 'nsvi -n'
+
+  * Only bump the serial number when required
+
+  * Forward -g from nsvi to nsupdate
+
+ -- Tony Finch <dot@dotat.at>  Sat, 4 Jul 2020 01:33:00 +0100
+
 nsdiff (1.82-1) unstable; urgency=low
 
   * Better package name and more accurate dependencies.
