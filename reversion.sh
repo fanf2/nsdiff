@@ -14,7 +14,7 @@ esac
 perl -pi -e 's{(ns(diff|patch|vi)-)[0-9.]+[0-9]}{${1}'$N'}' \
      README.pod nsdiff nspatch nsvi lib/DNS/nsdiff.pm
 
-perl -pi -e 's{(VERSION\s+=>?\s+)"[0-9.]+[0-9]"}{${1}"'$N'"}' \
+perl -pi -e 's{(VERSION\s+=>?\s+|\tgrep\s+)"[0-9.]+[0-9]"}{${1}"'$N'"}' \
      Makefile.PL lib/DNS/nsdiff.pm
 
 case $# in
