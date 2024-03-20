@@ -49,6 +49,7 @@ html::
 	rm -f pod2htm?.tmp
 
 deb::
+	mkdir -p web
 	dpkg-buildpackage -uc -A
 	mv ../nsdiff_* web/.
 	debian/rules clean
