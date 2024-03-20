@@ -146,10 +146,11 @@ $soa =~ $soare;
 my $oldserial = $3;
 my $oldsoa = "$1 $2 $4";
 $newsoa =~ $soare;
+my $newserial = $3;
 my $upsoa = $oldsoa ne "$1 $2 $4"
-    || ($soamode =~ m{file|master} && $oldserial < $3);
+    || ($soamode =~ m{file|master} && $oldserial < $newserial);
 # The serial number in the update might depend on the new SOA serial number.
-my $soamin = $soafun->($3);
+my $soamin = $soafun->($newserial);
 
 # Remove unchanged RRs, and save each name's deletions and additions.
 
@@ -533,11 +534,12 @@ because it isn't possible to delete all a zone's name servers.
 
 =head1 ACKNOWLEDGMENTS
 
-Thanks to Mike Bristow, Piete Brooks (University of Cambridge Computer
-Laboratory), Terry Burton (University of Leicester), Owen Dunn
-(University of Cambridge Faculty of Mathematics), Martin Hartl
-(Barracuda) JP Mens, Mohamad Shidiq Purnama (PANDI), and Jordan Rieger
-(webnames.ca) for providing useful feedback.
+Thanks to Athanasius, Mike Bristow, Piete Brooks (University of
+Cambridge Computer Laboratory), Terry Burton (University of
+Leicester), Owen Dunn (University of Cambridge Faculty of
+Mathematics), Martin Hartl (Barracuda), JP Mens, Mohamad Shidiq
+Purnama (PANDI), and Jordan Rieger (webnames.ca) for providing useful
+feedback.
 
 =head1 SEE ALSO
 
