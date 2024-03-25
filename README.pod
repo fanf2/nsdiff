@@ -124,6 +124,8 @@ DCO: L<https://developercertificate.org>
 
 =head2 Licence
 
+Copyright 2011-2024 Tony Finch <dot@dotat.at>
+
 Permission is hereby granted to use, copy, modify, and/or
 distribute this software for any purpose with or without fee.
 
