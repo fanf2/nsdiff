@@ -1,3 +1,9 @@
+nsdiff (1.85-1) unstable; urgency=low
+
+  * Fix dependencies and update package build versions
+
+ -- Tony Finch <dot@dotat.at>  Tue, 26 Mar 2024 10:03:07 +0000
+
 nsdiff (1.85) unstable; urgency=low
 
   * Change from CC0 to 0BSD OR MIT-0
@@ -8,7 +14,7 @@ nsdiff (1.85) unstable; urgency=low
 
   * Forward -g from nsvi to nsupdate
 
- -- Tony Finch <dot@dotat.at>  Sat, 4 Jul 2020 01:33:00 +0100
+ -- Tony Finch <dot@dotat.at>  Wed, 20 Mar 2024 09:46:15 +0000
 
 nsdiff (1.82-1) unstable; urgency=low
 

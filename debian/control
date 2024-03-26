@@ -2,14 +2,14 @@ Source: nsdiff
 Section: net
 Priority: optional
 Maintainer: Tony Finch <dot@dotat.at>
-Build-Depends: debhelper (>= 9)
+Build-Depends: debhelper (= 13)
 Build-Depends-Indep: perl
-Standards-Version: 3.9.8
+Standards-Version: 4.6.2
 Homepage: https://dotat.at/prog/nsdiff/
 
 Package: nsdiff
 Architecture: all
-Depends: ${misc:Depends}, ${perl:Depends}, dnsutils
+Depends: ${misc:Depends}, ${perl:Depends}, bind9-dnsutils, bind9-utils
 Description: create an 'nsupdate' script from DNS zone file differences
  The nsdiff program examines the old and new versions of a DNS zone,
  and outputs the differences as a script for use by BIND's nsupdate
